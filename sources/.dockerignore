@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.gitignore
+.codegraph
+.env
+.env.*
+!.env.example
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+tsconfig.tsbuildinfo
+README.md
+Dockerfile
+docker-compose.yml
+.dockerignore

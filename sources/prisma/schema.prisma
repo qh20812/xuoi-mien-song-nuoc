@@ -1,0 +1,507 @@
+// Prisma schema cho Xuôi Miền Sông Nước
+// DB: MySQL 8 (Aiven) — utf8mb4 / utf8mb4_unicode_ci
+//
+// Quy ước:
+// - Tên bảng/cột trong DB là snake_case (@@map / @map), code dùng camelCase.
+// - Tiền (VND) dùng Int vì VND không có phần lẻ; Int đủ tới 2.1 tỷ/đơn.
+// - Trạng thái dùng enum của Prisma (MySQL ENUM) để type-safe ở tầng code.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum TourStatus {
+  draft
+  published
+  archived
+}
+
+enum PostStatus {
+  draft
+  published
+}
+
+enum DepartureStatus {
+  open
+  closed
+  cancelled
+}
+
+enum OrderStatus {
+  new
+  pending
+  confirmed
+  completed
+  cancelled
+  expired
+}
+
+enum OrderSource {
+  web
+  zalo
+  phone
+  facebook
+}
+
+enum ReviewStatus {
+  pending
+  approved
+  rejected
+  hidden
+}
+
+enum MediaType {
+  image
+  youtube
+}
+
+enum AdminRole {
+  owner
+  admin
+  editor
+}
+
+enum ContactStatus {
+  new
+  read
+  replied
+  spam
+}
+
+enum PassengerType {
+  adult
+  child
+  infant
+}
+
+enum ItinerarySlot {
+  morning
+  afternoon
+  evening
+}
+
+// ============================================================
+// A. NỘI DUNG / QUẢNG BÁ
+// ============================================================
+
+model Tour {
+  id                 Int        @id @default(autoincrement())
+  slug               String     @unique @db.VarChar(160)
+  code               String     @unique @db.VarChar(20) // XMSN-4N3D
+  name               String     @db.VarChar(200)
+  tagline            String?    @db.VarChar(255)
+  summary            String?    @db.Text
+  description        String?    @db.MediumText
+  durationDays       Int        @map("duration_days") @db.UnsignedSmallInt
+  durationNights     Int        @map("duration_nights") @db.UnsignedSmallInt
+  basePriceAdult     Int        @map("base_price_adult")
+  basePriceChild     Int        @default(0) @map("base_price_child")
+  childAgeNote       String?    @map("child_age_note") @db.VarChar(255)
+  highlights         Json?
+  includes           Json?
+  excludes           Json?
+  cancellationPolicy String?    @map("cancellation_policy") @db.Text
+  packingNotes       String?    @map("packing_notes") @db.Text
+  coverImageUrl      String?    @map("cover_image_url") @db.VarChar(500)
+  gallery            Json? // [{ url, alt, sort }]
+  seoTitle           String?    @map("seo_title") @db.VarChar(200)
+  seoDescription     String?    @map("seo_description") @db.VarChar(320)
+  ogImageUrl         String?    @map("og_image_url") @db.VarChar(500)
+  status             TourStatus @default(draft)
+  isFeatured         Boolean    @default(false) @map("is_featured")
+  sortOrder          Int        @default(0) @map("sort_order")
+  ratingAvg          Decimal    @default(0) @map("rating_avg") @db.Decimal(3, 2)
+  ratingCount        Int        @default(0) @map("rating_count")
+  createdAt          DateTime   @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt          DateTime   @updatedAt @map("updated_at") @db.DateTime(3)
+
+  itineraryDays TourItineraryDay[]
+  departures    TourDeparture[]
+  destinations  TourDestination[]
+  cuisines      TourCuisine[]
+  orders        Order[]
+  reviews       Review[]
+
+  @@index([status, isFeatured, sortOrder])
+  @@map("tours")
+}
+
+model TourItineraryDay {
+  id        Int     @id @default(autoincrement())
+  tourId    Int     @map("tour_id")
+  dayNumber Int     @map("day_number") @db.UnsignedSmallInt
+  title     String  @db.VarChar(200)
+  meals     Json? // { breakfast, lunch, dinner }
+  hotel     String? @db.VarChar(200)
+
+  tour  Tour                @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  items TourItineraryItem[]
+
+  @@unique([tourId, dayNumber])
+  @@map("tour_itinerary_days")
+}
+
+model TourItineraryItem {
+  id        Int              @id @default(autoincrement())
+  dayId     Int              @map("day_id")
+  slot      ItinerarySlot
+  title     String           @db.VarChar(200)
+  content   String?          @db.Text
+  imageUrl  String?          @map("image_url") @db.VarChar(500)
+  sortOrder Int              @default(0) @map("sort_order")
+  day       TourItineraryDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+
+  @@index([dayId, slot, sortOrder])
+  @@map("tour_itinerary_items")
+}
+
+model Destination {
+  id            Int      @id @default(autoincrement())
+  slug          String   @unique @db.VarChar(160)
+  name          String   @db.VarChar(200)
+  province      String   @db.VarChar(120)
+  category      String?  @db.VarChar(40) // cho-noi | rung | bien | kien-truc | lang-nghe
+  shortDesc     String?  @map("short_desc") @db.VarChar(500)
+  description   String?  @db.MediumText
+  bestSeason    String?  @map("best_season") @db.VarChar(200)
+  lat           Decimal? @db.Decimal(10, 7)
+  lng           Decimal? @db.Decimal(10, 7)
+  mapEmbedUrl   String?  @map("map_embed_url") @db.VarChar(1000)
+  travelNote    String?  @map("travel_note") @db.VarChar(500)
+  coverImageUrl String?  @map("cover_image_url") @db.VarChar(500)
+  status        String   @default("published") @db.VarChar(20)
+  sortOrder     Int      @default(0) @map("sort_order")
+
+  tours TourDestination[]
+
+  @@index([province, status])
+  @@map("destinations")
+}
+
+// Timeline của hành trình lớn (/hanh-trinh): Sài Gòn → Mỹ Tho → ... → Đất Mũi
+model JourneyLeg {
+  id           Int     @id @default(autoincrement())
+  sortOrder    Int     @map("sort_order")
+  fromPlace    String  @map("from_place") @db.VarChar(120)
+  toPlace      String  @map("to_place") @db.VarChar(120)
+  title        String  @db.VarChar(200)
+  description  String? @db.Text
+  durationText String? @map("duration_text") @db.VarChar(100)
+  distanceKm   Int?    @map("distance_km") @db.UnsignedSmallInt
+  foodNote     String? @map("food_note") @db.VarChar(500)
+  imageUrl     String? @map("image_url") @db.VarChar(500)
+
+  @@index([sortOrder])
+  @@map("journey_legs")
+}
+
+model TourDestination {
+  tourId        Int @map("tour_id")
+  destinationId Int @map("destination_id")
+  sortOrder     Int @default(0) @map("sort_order")
+
+  tour        Tour        @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@id([tourId, destinationId])
+  @@map("tour_destinations")
+}
+
+model Cuisine {
+  id          Int     @id @default(autoincrement())
+  slug        String  @unique @db.VarChar(160)
+  name        String  @db.VarChar(200)
+  description String? @db.Text
+  whereToEat  String? @map("where_to_eat") @db.VarChar(500)
+  province    String? @db.VarChar(120)
+  imageUrl    String? @map("image_url") @db.VarChar(500)
+  sortOrder   Int     @default(0) @map("sort_order")
+
+  tours TourCuisine[]
+
+  @@index([sortOrder])
+  @@map("cuisines")
+}
+
+model TourCuisine {
+  tourId    Int @map("tour_id")
+  cuisineId Int @map("cuisine_id")
+
+  tour    Tour    @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  cuisine Cuisine @relation(fields: [cuisineId], references: [id], onDelete: Cascade)
+
+  @@id([tourId, cuisineId])
+  @@map("tour_cuisines")
+}
+
+model Post {
+  id             Int        @id @default(autoincrement())
+  slug           String     @unique @db.VarChar(200)
+  title          String     @db.VarChar(255)
+  excerpt        String?    @db.VarChar(500)
+  content        String?    @db.MediumText
+  coverImageUrl  String?    @map("cover_image_url") @db.VarChar(500)
+  category       String?    @db.VarChar(60) // kinh-nghiem | am-thuc | tin-tuc
+  tags           Json?
+  status         PostStatus @default(draft)
+  publishedAt    DateTime?  @map("published_at") @db.DateTime(3)
+  authorId       Int?       @map("author_id")
+  viewCount      Int        @default(0) @map("view_count")
+  seoTitle       String?    @map("seo_title") @db.VarChar(200)
+  seoDescription String?    @map("seo_description") @db.VarChar(320)
+  createdAt      DateTime   @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt      DateTime   @updatedAt @map("updated_at") @db.DateTime(3)
+
+  author AdminUser? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([status, publishedAt])
+  @@map("posts")
+}
+
+model Faq {
+  id        Int     @id @default(autoincrement())
+  question  String  @db.VarChar(500)
+  answer    String  @db.Text
+  category  String  @default("general") @db.VarChar(40) // booking | transport | food | safety | weather
+  sortOrder Int     @default(0) @map("sort_order")
+  isActive  Boolean @default(true) @map("is_active")
+
+  @@index([isActive, sortOrder])
+  @@map("faqs")
+}
+
+// Thư viện ảnh/video dùng chung cho /gallery
+model Media {
+  id           Int       @id @default(autoincrement())
+  type         MediaType @default(image)
+  url          String    @db.VarChar(1000)
+  thumbnailUrl String?   @map("thumbnail_url") @db.VarChar(1000)
+  title        String?   @db.VarChar(255)
+  alt          String?   @db.VarChar(255)
+  width        Int?
+  height       Int?
+  tags         Json?
+  sortOrder    Int       @default(0) @map("sort_order")
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+
+  @@index([isActive, sortOrder])
+  @@map("media")
+}
+
+// Cấu hình site: hotline, zalo, địa chỉ, social, SEO mặc định...
+model Setting {
+  key       String   @id @db.VarChar(80)
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@map("settings")
+}
+
+// ============================================================
+// B. ĐẶT CHỖ
+// ============================================================
+
+model TourDeparture {
+  id               Int             @id @default(autoincrement())
+  tourId           Int             @map("tour_id")
+  departureDate    DateTime        @map("departure_date") @db.Date
+  returnDate       DateTime?       @map("return_date") @db.Date
+  capacityTotal    Int             @map("capacity_total") @db.UnsignedSmallInt
+  seatsTaken       Int             @default(0) @map("seats_taken") @db.UnsignedSmallInt
+  priceAdult       Int?            @map("price_adult")
+  priceChild       Int?            @map("price_child")
+  holidaySurcharge Int             @default(0) @map("holiday_surcharge")
+  meetingPoint     String?         @map("meeting_point") @db.VarChar(255)
+  status           DepartureStatus @default(open)
+  note             String?         @db.VarChar(500)
+  createdAt        DateTime        @default(now()) @map("created_at") @db.DateTime(3)
+
+  tour   Tour    @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@unique([tourId, departureDate])
+  @@index([departureDate, status])
+  @@map("tour_departures")
+}
+
+model Order {
+  id             Int         @id @default(autoincrement())
+  code           String      @unique @db.VarChar(24) // XMSN-2026-0001
+  tourId         Int         @map("tour_id")
+  departureId    Int         @map("departure_id")
+  contactName    String      @map("contact_name") @db.VarChar(120)
+  phone          String      @db.VarChar(20)
+  email          String?     @db.VarChar(160)
+  pickupPoint    String?     @map("pickup_point") @db.VarChar(255)
+  adults         Int         @db.UnsignedSmallInt
+  children       Int         @default(0) @db.UnsignedSmallInt
+  infants        Int         @default(0) @db.UnsignedSmallInt
+  unitPriceAdult Int         @map("unit_price_adult")
+  unitPriceChild Int         @default(0) @map("unit_price_child")
+  surcharge      Int         @default(0)
+  totalAmount    Int         @map("total_amount")
+  status         OrderStatus @default(new)
+  holdExpiresAt  DateTime?   @map("hold_expires_at") @db.DateTime(3)
+  clientRequestId String?    @unique @map("client_request_id") @db.Char(36)
+  source         OrderSource @default(web)
+  customerNote   String?     @map("customer_note") @db.Text
+  adminNote      String?     @map("admin_note") @db.Text
+  cancelReason   String?     @map("cancel_reason") @db.VarChar(500)
+  cancelledAt    DateTime?   @map("cancelled_at") @db.DateTime(3)
+  cancelledBy    Int?        @map("cancelled_by") // admin id, NULL = khách tự huỷ
+  lookupToken    String      @unique @map("lookup_token") @db.Char(24)
+  confirmedAt    DateTime?   @map("confirmed_at") @db.DateTime(3)
+  confirmedBy    Int?        @map("confirmed_by") // admin id
+  ipHash         String?     @map("ip_hash") @db.Char(64)
+  userAgent      String?     @map("user_agent") @db.VarChar(500)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.DateTime(3)
+
+  tour          Tour                 @relation(fields: [tourId], references: [id])
+  departure     TourDeparture        @relation(fields: [departureId], references: [id])
+  passengers    OrderPassenger[]
+  statusHistory OrderStatusHistory[]
+  review        Review?
+
+  @@index([phone])
+  @@index([status, createdAt])
+  @@index([status, holdExpiresAt])
+  @@index([departureId, status])
+  @@index([tourId, createdAt])
+  @@map("orders")
+}
+
+model OrderPassenger {
+  id        Int           @id @default(autoincrement())
+  orderId   Int           @map("order_id")
+  fullName  String?       @map("full_name") @db.VarChar(120)
+  type      PassengerType
+  birthYear Int?          @map("birth_year") @db.UnsignedSmallInt
+  note      String?       @db.VarChar(255)
+  sortOrder Int           @default(0) @map("sort_order")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_passengers")
+}
+
+model OrderStatusHistory {
+  id         Int          @id @default(autoincrement())
+  orderId    Int          @map("order_id")
+  fromStatus OrderStatus? @map("from_status")
+  toStatus   OrderStatus  @map("to_status")
+  note       String?      @db.VarChar(500)
+  changedBy  Int?         @map("changed_by") // admin id, NULL = hệ thống/khách
+  createdAt  DateTime     @default(now()) @map("created_at") @db.DateTime(3)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_history")
+}
+
+// Cấp mã đơn tuần tự theo năm (XMSN-2026-0001) không race condition
+model BookingSequence {
+  year    Int @id
+  lastSeq Int @default(0) @map("last_seq")
+
+  @@map("booking_sequences")
+}
+
+// ============================================================
+// C. TƯƠNG TÁC
+// ============================================================
+
+model Review {
+  id         Int          @id @default(autoincrement())
+  tourId     Int?         @map("tour_id") // NULL = đánh giá chung website
+  orderId    Int?         @unique @map("order_id") // có = đã đi tour (verified)
+  authorName String       @map("author_name") @db.VarChar(120)
+  phone      String?      @db.VarChar(20) // không hiển thị
+  rating     Int          @db.UnsignedTinyInt
+  comment    String?      @db.Text
+  status     ReviewStatus @default(pending)
+  isFeatured Boolean      @default(false) @map("is_featured")
+  adminReply String?      @map("admin_reply") @db.Text
+  approvedAt DateTime?    @map("approved_at") @db.DateTime(3)
+  createdAt  DateTime     @default(now()) @map("created_at") @db.DateTime(3)
+
+  tour   Tour?         @relation(fields: [tourId], references: [id], onDelete: SetNull)
+  order  Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  images ReviewImage[]
+
+  @@index([tourId, status, createdAt])
+  @@map("reviews")
+}
+
+model ReviewImage {
+  id        Int    @id @default(autoincrement())
+  reviewId  Int    @map("review_id")
+  url       String @db.VarChar(1000)
+  sortOrder Int    @default(0) @map("sort_order")
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@map("review_images")
+}
+
+model ContactMessage {
+  id        Int           @id @default(autoincrement())
+  name      String        @db.VarChar(120)
+  phone     String        @db.VarChar(20)
+  email     String?       @db.VarChar(160)
+  subject   String?       @db.VarChar(255)
+  message   String        @db.Text
+  status    ContactStatus @default(new)
+  createdAt DateTime      @default(now()) @map("created_at") @db.DateTime(3)
+
+  @@index([status, createdAt])
+  @@map("contact_messages")
+}
+
+// ============================================================
+// D. VẬN HÀNH
+// ============================================================
+
+model AdminUser {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique @db.VarChar(160)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  name         String    @db.VarChar(120)
+  role         AdminRole @default(admin)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at") @db.DateTime(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+
+  posts  Post[]
+  audits AdminAuditLog[]
+
+  @@map("admin_users")
+}
+
+model AdminAuditLog {
+  id        Int      @id @default(autoincrement())
+  adminId   Int?     @map("admin_id")
+  action    String   @db.VarChar(60) // order.confirm, order.cancel, tour.publish...
+  entity    String   @db.VarChar(40)
+  entityId  Int?     @map("entity_id")
+  meta      Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  admin AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId, createdAt])
+  @@map("admin_audit_logs")
+}

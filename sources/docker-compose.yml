@@ -1,0 +1,41 @@
+name: xmsn
+
+services:
+  # Chạy migration trước khi app khởi động.
+  # Chạy tay: docker compose run --rm migrate
+  migrate:
+    build:
+      context: .
+      target: migrate
+    image: xmsn-migrate:latest
+    env_file:
+      - .env
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+    image: xmsn-app:latest
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
