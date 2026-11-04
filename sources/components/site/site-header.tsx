@@ -1,5 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 import { MessageCircle, Phone } from "lucide-react";
+import logo from "@/public/logo-xuoi-mien-song-nuoc.png";
 import { Container } from "@/components/ui/container";
 import { buttonVariants } from "@/components/ui/button";
 import { MobileNavigation } from "@/components/site/mobile-navigation";
@@ -17,23 +19,32 @@ export function SiteHeader({ navigation, settings }: SiteHeaderProps) {
       <Container className="flex h-16 items-center justify-between gap-4 lg:h-20">
         <Link
           href="/"
-          className="group flex shrink-0 flex-col text-left"
+          className="group flex shrink-0 items-center gap-3 rounded-sm py-1.5 text-left focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:ring-offset-4 focus-visible:ring-offset-canvas focus-visible:outline-none"
           aria-label={`${settings.name} – Trang chủ`}
         >
-          <span className="font-display text-lg leading-tight font-semibold tracking-[-0.02em] text-ink transition-colors group-hover:text-clay lg:text-xl">
-            {settings.name}
-          </span>
-          <span className="hidden text-[0.625rem] font-semibold tracking-[0.14em] text-sage uppercase sm:block">
-            {settings.tagline}
+          <Image
+            src={logo}
+            alt=""
+            loading="eager"
+            sizes="(min-width: 1280px) 48px, (min-width: 1024px) 40px, 36px"
+            className="size-9 shrink-0 object-contain lg:size-10 xl:size-12"
+          />
+          <span className="flex flex-col">
+            <span className="font-display text-lg leading-tight font-semibold tracking-[-0.02em] text-ink transition-colors group-hover:text-clay lg:text-xl">
+              {settings.name}
+            </span>
+            <span className="hidden text-[0.625rem] font-semibold tracking-[0.14em] text-sage uppercase sm:block">
+              {settings.tagline}
+            </span>
           </span>
         </Link>
 
-        <nav aria-label="Điều hướng chính" className="hidden items-center gap-6 lg:flex">
+        <nav aria-label="Điều hướng chính" className="hidden items-center gap-4 lg:flex xl:gap-6">
           {navigation.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="py-2 text-sm font-medium text-sage transition-colors hover:text-ink"
+              className="py-2 text-sm font-medium whitespace-nowrap text-sage transition-colors hover:text-ink"
             >
               {item.label}
             </Link>

@@ -155,17 +155,22 @@ Base unit: `4px`.
 
 ## 5. Component Stylings
 
-### Wordmark
+### Wordmark & logo
 
-- Dùng wordmark chữ “Xuôi Miền Sông Nước”, không tự tạo logo phức tạp.
-- Có thể thêm một nét mảnh gợi dòng sông bằng SVG, nhưng không dùng icon lá, thuyền, nón lá làm logo.
-- Trên mobile chỉ cần wordmark gọn hoặc chữ “XMSN” nếu không đủ chỗ.
+- Logo chính thức: `sources/public/logo-xuoi-mien-song-nuoc.png` (451×451), dùng qua `next/image`.
+- Không dùng `logo-xuoi-mien-song-nuoc.svg`: đây là bản autotrace 3.566 path, 1,6 MB, Next không tối ưu SVG nên mỗi trang sẽ tải cả file cho một badge 40px.
+- Header: badge logo đặt cạnh wordmark chữ “Xuôi Miền Sông Nước”. Ảnh dùng `object-contain`, không khung, không border, không shadow, không bo tròn — logo đã có nền trong suốt, mask tròn sẽ cắt mất mép lá và con thuyền.
+- Kích thước badge: `36px` mobile → `40px` từ `lg` → `48px` từ `xl`.
+- Ảnh logo là trang trí (`alt=""`); tên thương hiệu do wordmark và `aria-label` của link đảm nhiệm.
+- Favicon: `app/favicon.ico` (16/32/48) và `app/apple-icon.png` (180×180, nền `#F6F1E6`). Không dùng file `.ico` 9 kích thước 432 KB.
+- Không tự vẽ logo khác, không dùng icon lá, thuyền, nón lá thay logo.
+- Trên mobile giữ wordmark đầy đủ, không rút gọn thành “XMSN”.
 
 ### Header
 
 - Cao `80px` desktop, `64px` mobile.
 - Nền Rice Paper hoặc trong suốt trên hero nếu độ tương phản đủ; khi sticky chuyển sang `--surface`.
-- Trái: wordmark. Giữa: Tour, Hành trình, Điểm đến, Ẩm thực, Kinh nghiệm. Phải: hotline dạng text link nhỏ và CTA “Đặt tour”.
+- Trái: badge logo + wordmark. Giữa: Tour, Hành trình, Điểm đến, Ẩm thực, Kinh nghiệm. Phải: hotline dạng text link nhỏ và CTA “Đặt tour”.
 - Mobile: wordmark, nút gọi/Zalo dạng icon có label ẩn, menu mở toàn màn hình.
 - Không dùng hamburger quá nhỏ; touch target tối thiểu `44 × 44px`.
 - Không có dropdown phức tạp ở phiên bản đầu.
