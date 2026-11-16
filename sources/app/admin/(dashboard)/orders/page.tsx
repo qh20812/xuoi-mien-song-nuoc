@@ -1,7 +1,10 @@
 import Link from "next/link";
-import { StatusBadge } from "@/components/admin/status-badge";
+import { Search } from "lucide-react";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { HoldExpiredLabel, StatusBadge } from "@/components/admin/status-badge";
 import { requireAdminPage } from "@/lib/auth/session";
-import { formatDateVN, formatDateTimeVN, formatVnd } from "@/lib/format";
+import { statusLabel } from "@/lib/booking/status-labels";
+import { formatDateVN, formatDateTimeVN, formatVndDisplay } from "@/lib/format";
 import {
   ADMIN_ORDER_STATUSES,
   isAdminOrderStatus,
@@ -10,15 +13,6 @@ import {
 
 export const metadata = {
   title: "Đơn hàng | Quản trị Xuôi Miền Sông Nước",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  new: "Chờ xác nhận",
-  pending: "Đang liên hệ",
-  confirmed: "Đã xác nhận",
-  completed: "Hoàn thành",
-  cancelled: "Đã huỷ",
-  expired: "Hết hạn",
 };
 
 function buildHref(
@@ -32,6 +26,9 @@ function buildHref(
   const query = search.toString();
   return query ? `/admin/orders?${query}` : "/admin/orders";
 }
+
+const fieldClass =
+  "h-10 rounded-[10px] border border-line bg-surface text-[13px] text-ink focus-visible:border-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none";
 
 export default async function AdminOrdersPage({
   searchParams,
@@ -47,128 +44,250 @@ export default async function AdminOrdersPage({
 
   const result = await listAdminOrders({ status, q, page });
   const filters = { status, q };
+  const hasFilter = Boolean(status || q);
+
+  const exportQuery = new URLSearchParams({
+    ...(status ? { status } : {}),
+    ...(q ? { q } : {}),
+  }).toString();
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Đơn đặt chỗ</h1>
-        <span className="text-sm text-muted-foreground">{result.pagination.total} đơn</span>
-      </div>
+    <div className="flex flex-col gap-6">
+      <AdminPageHeader
+        breadcrumb={[{ label: "Quản trị", href: "/admin" }, { label: "Đơn hàng" }]}
+        title="Đơn đặt chỗ"
+        actions={
+          <div className="flex items-center gap-3">
+            <span className="text-[13px] text-sage">{result.pagination.total} đơn</span>
+            <a
+              href={`/api/admin/orders/export${exportQuery ? `?${exportQuery}` : ""}`}
+              className="inline-flex h-10 items-center rounded-[10px] border border-line px-4 text-[13px] font-semibold text-ink transition-colors hover:border-clay hover:text-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
+            >
+              Xuất CSV
+            </a>
+          </div>
+        }
+      />
 
-      <form method="get" className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-3">
-        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-          Trạng thái
+      <form
+        method="get"
+        className="flex flex-col gap-4 rounded-xl border border-line bg-surface p-4 md:flex-row md:items-end"
+      >
+        <div className="flex w-full flex-col gap-1.5 md:w-[200px] md:shrink-0">
+          <label htmlFor="filter-status" className="text-[12px] font-semibold text-sage">
+            Trạng thái
+          </label>
           <select
+            id="filter-status"
             name="status"
             defaultValue={status ?? ""}
-            className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground"
+            className={`${fieldClass} px-3`}
           >
             <option value="">Tất cả</option>
             {ADMIN_ORDER_STATUSES.map((value) => (
               <option key={value} value={value}>
-                {STATUS_LABELS[value] ?? value}
+                {statusLabel(value)}
               </option>
             ))}
           </select>
-        </label>
+        </div>
 
-        <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-          Tìm kiếm
-          <input
-            name="q"
-            defaultValue={q ?? ""}
-            placeholder="Mã đơn / SĐT / tên khách"
-            className="w-56 rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground"
-          />
-        </label>
+        <div className="flex w-full flex-col gap-1.5 md:w-[280px] md:shrink-0">
+          <label htmlFor="filter-q" className="text-[12px] font-semibold text-sage">
+            Tìm kiếm
+          </label>
+          <div className="relative">
+            <Search
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-sage"
+            />
+            <input
+              id="filter-q"
+              name="q"
+              defaultValue={q ?? ""}
+              placeholder="Mã đơn / SĐT / tên khách"
+              className={`${fieldClass} w-full pr-3 pl-9`}
+            />
+          </div>
+        </div>
 
-        <button
-          type="submit"
-          className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
-        >
-          Lọc
-        </button>
-        <Link href="/admin/orders" className="text-sm text-muted-foreground hover:text-foreground">
-          Xoá lọc
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            className="h-10 rounded-[10px] bg-clay px-4 text-[13px] font-semibold text-contrast-on-accent transition-colors hover:bg-clay-hover focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:outline-none"
+          >
+            Lọc
+          </button>
+          <Link
+            href="/admin/orders"
+            className="text-[13px] font-medium text-sage transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
+          >
+            Xoá lọc
+          </Link>
+        </div>
       </form>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-border text-muted-foreground">
-            <tr>
-              <th className="px-3 py-2 font-medium">Mã đơn</th>
-              <th className="px-3 py-2 font-medium">Khách</th>
-              <th className="px-3 py-2 font-medium">Tour</th>
-              <th className="px-3 py-2 font-medium">Khởi hành</th>
-              <th className="px-3 py-2 font-medium">Khách</th>
-              <th className="px-3 py-2 font-medium">Tiền</th>
-              <th className="px-3 py-2 font-medium">Trạng thái</th>
-              <th className="px-3 py-2 font-medium">Tạo lúc</th>
-            </tr>
-          </thead>
-          <tbody>
-            {result.orders.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">
-                  Không có đơn phù hợp.
-                </td>
-              </tr>
-            ) : (
-              result.orders.map((order) => (
-                <tr key={order.id} className="border-b border-border/60 last:border-0">
-                  <td className="px-3 py-2">
-                    <Link
-                      href={`/admin/orders/${order.id}`}
-                      className="font-medium underline-offset-2 hover:underline"
-                    >
-                      {order.code}
-                    </Link>
-                    {order.holdExpired ? (
-                      <span className="mt-0.5 block text-xs text-rose-600">Quá hạn giữ chỗ</span>
-                    ) : null}
-                  </td>
-                  <td className="px-3 py-2">
-                    {order.contactName}
-                    <span className="block text-xs text-muted-foreground">{order.phone}</span>
-                  </td>
-                  <td className="px-3 py-2">{order.tour.code}</td>
-                  <td className="px-3 py-2">{formatDateVN(order.departure.date)}</td>
-                  <td className="px-3 py-2">{order.guests.seats}</td>
-                  <td className="px-3 py-2">{formatVnd(order.totalAmount)}</td>
-                  <td className="px-3 py-2">
-                    <StatusBadge status={order.status} />
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {formatDateTimeVN(order.createdAt)}
-                  </td>
+      {result.orders.length === 0 ? (
+        <div className="rounded-xl border border-line bg-surface py-12 text-center">
+          {hasFilter ? (
+            <>
+              <p className="text-[13px] text-sage">Không có đơn phù hợp.</p>
+              <Link
+                href="/admin/orders"
+                className="mt-2 inline-block text-[13px] font-medium text-clay underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
+              >
+                Xoá bộ lọc
+              </Link>
+            </>
+          ) : (
+            <p className="text-[13px] text-sage">Chưa có đơn nào.</p>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="hidden overflow-x-auto rounded-xl border border-line bg-surface xl:block">
+            <table className="w-full text-left text-[13px]">
+              <thead>
+                <tr className="border-b border-line bg-surface-warm">
+                  <th scope="col" className="px-4 py-3 text-[12px] font-semibold text-sage">
+                    Mã đơn
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-[12px] font-semibold text-sage">
+                    Khách
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-[12px] font-semibold text-sage">
+                    Tour
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-[12px] font-semibold text-sage">
+                    Khởi hành
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-right text-[12px] font-semibold text-sage"
+                  >
+                    Số khách
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-right text-[12px] font-semibold text-sage"
+                  >
+                    Tiền
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-[12px] font-semibold text-sage">
+                    Trạng thái
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-[12px] font-semibold text-sage">
+                    Tạo lúc
+                  </th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {result.orders.map((order) => (
+                  <tr key={order.id} className="h-[52px] transition-colors hover:bg-surface-warm/50">
+                    <td className="px-4 py-2.5 align-middle">
+                      <Link
+                        href={`/admin/orders/${order.id}`}
+                        className="font-mono text-[13px] text-ink hover:underline focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
+                      >
+                        {order.code}
+                      </Link>
+                      {order.holdExpired ? <HoldExpiredLabel className="mt-1 block" /> : null}
+                    </td>
+                    <td className="px-4 py-2.5 align-middle">
+                      <span className="block font-medium text-ink">{order.contactName}</span>
+                      <span className="mt-0.5 block text-[12px] text-sage tabular-nums">
+                        {order.phone}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 align-middle font-mono text-[13px] text-ink">
+                      {order.tour.code}
+                    </td>
+                    <td className="px-4 py-2.5 align-middle whitespace-nowrap tabular-nums text-ink">
+                      {formatDateVN(order.departure.date)}
+                    </td>
+                    <td className="px-4 py-2.5 text-right align-middle tabular-nums text-ink">
+                      {order.guests.seats}
+                    </td>
+                    <td className="px-4 py-2.5 text-right align-middle font-medium whitespace-nowrap tabular-nums text-ink">
+                      {formatVndDisplay(order.totalAmount)}
+                    </td>
+                    <td className="px-4 py-2.5 align-middle">
+                      <StatusBadge status={order.status} />
+                    </td>
+                    <td className="px-4 py-2.5 align-middle whitespace-nowrap text-[12px] text-sage tabular-nums">
+                      {formatDateTimeVN(order.createdAt)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex flex-col gap-3 xl:hidden">
+            {result.orders.map((order) => (
+              <Link
+                key={order.id}
+                href={`/admin/orders/${order.id}`}
+                className="rounded-xl border border-line bg-surface p-4 transition-colors hover:border-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas focus-visible:outline-none"
+              >
+                <span className="flex items-start justify-between gap-2">
+                  <span className="font-mono text-[13px] text-ink">{order.code}</span>
+                  <StatusBadge status={order.status} />
+                </span>
+                {order.holdExpired ? <HoldExpiredLabel className="mt-1 block" /> : null}
+                <span className="mt-2 block text-[13px] font-medium text-ink">
+                  {order.contactName}
+                  <span className="ml-2 text-[12px] font-normal text-sage tabular-nums">
+                    {order.phone}
+                  </span>
+                </span>
+                <span className="mt-1 flex items-center justify-between gap-2 text-[12px] text-sage">
+                  <span>
+                    {order.tour.code} · {formatDateVN(order.departure.date)} ·{" "}
+                    {order.guests.seats} khách
+                  </span>
+                  <span className="font-medium whitespace-nowrap tabular-nums text-ink">
+                    {formatVndDisplay(order.totalAmount)}
+                  </span>
+                </span>
+                <span className="mt-1 block text-[12px] text-sage tabular-nums">
+                  Tạo lúc {formatDateTimeVN(order.createdAt)}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
 
       {result.pagination.totalPages > 1 ? (
-        <div className="flex items-center justify-between text-sm">
+        <nav
+          aria-label="Phân trang đơn hàng"
+          className="flex items-center justify-between text-[13px]"
+        >
           {page > 1 ? (
-            <Link href={buildHref(filters, page - 1)} className="hover:underline">
+            <Link
+              href={buildHref(filters, page - 1)}
+              className="font-medium text-ink transition-colors hover:text-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
+            >
               ← Trang trước
             </Link>
           ) : (
-            <span />
+            <span aria-hidden="true" />
           )}
-          <span className="text-muted-foreground">
+          <span className="text-sage tabular-nums">
             Trang {page}/{result.pagination.totalPages}
           </span>
           {page < result.pagination.totalPages ? (
-            <Link href={buildHref(filters, page + 1)} className="hover:underline">
+            <Link
+              href={buildHref(filters, page + 1)}
+              className="font-medium text-ink transition-colors hover:text-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
+            >
               Trang sau →
             </Link>
           ) : (
-            <span />
+            <span aria-hidden="true" />
           )}
-        </div>
+        </nav>
       ) : null}
     </div>
   );

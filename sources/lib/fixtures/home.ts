@@ -1,24 +1,23 @@
 import type { HomePageData } from "@/lib/contracts/home";
 
 const IMG = {
-  vinhTrang:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/Ch%C3%B9a_V%C4%A9nh_Tr%C3%A0ng_%E1%BB%9F_M%E1%BB%B9_Tho.jpg/1920px-Ch%C3%B9a_V%C4%A9nh_Tr%C3%A0ng_%E1%BB%9F_M%E1%BB%B9_Tho.jpg",
-  thoiSon:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/T%C3%A0u_du_l%E1%BB%8Bch_gh%C3%A9_c%E1%BB%93n_L%C3%A2n.jpg/1920px-T%C3%A0u_du_l%E1%BB%8Bch_gh%C3%A9_c%E1%BB%93n_L%C3%A2n.jpg",
-  caiRang:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/M%E1%BB%99t_c%E1%BA%A3nh_%E1%BB%9F_ch%E1%BB%A3_n%E1%BB%95i_C%C3%A1i_R%C4%83ng.jpg/1920px-M%E1%BB%99t_c%E1%BA%A3nh_%E1%BB%9F_ch%E1%BB%A3_n%E1%BB%95i_C%C3%A1i_R%C4%83ng.jpg",
-  binhThuy:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Nh%C3%A0_c%E1%BB%95_B%C3%ACnh_Th%E1%BB%A7y_1.jpg/1920px-Nh%C3%A0_c%E1%BB%95_B%C3%ACnh_Th%E1%BB%A7y_1.jpg",
-  chuaDoi:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Ch%C3%B9a_D%C6%A1i_%2845715215502%29.jpg/1920px-Ch%C3%B9a_D%C6%A1i_%2845715215502%29.jpg",
-  congTu:
-    "https://upload.wikimedia.org/wikipedia/commons/0/02/Nh%C3%A0_C%C3%B4ng_t%E1%BB%AD_B%E1%BA%A1c_Li%C3%AAu.jpg",
-  dienGio:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/B%E1%BA%A1c_Li%C3%AAu_windpower_farm.jpg/1920px-B%E1%BA%A1c_Li%C3%AAu_windpower_farm.jpg",
-  uMinh:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Chu%E1%BB%91i_t%E1%BA%A1i_r%E1%BB%ABng_U_Minh_h%E1%BA%A1.jpg/1920px-Chu%E1%BB%91i_t%E1%BA%A1i_r%E1%BB%ABng_U_Minh_h%E1%BA%A1.jpg",
-  muiCaMau:
-    "https://upload.wikimedia.org/wikipedia/commons/7/7b/Tuongdaimuicamau.jpg",
+  // Điểm đến — ảnh tải từ Wikimedia Commons (nguồn & giấy phép: public/images/CREDITS.md)
+  vinhTrang: "/images/chua-vinh-trang.webp",
+  thoiSon: "/images/cu-lao-thoi-son.webp",
+  caiRang: "/images/cho-noi-cai-rang.webp",
+  binhThuy: "/images/nha-co-binh-thuy.webp",
+  chuaDoi: "/images/chua-doi-soc-trang.webp",
+  congTu: "/images/nha-cong-tu-bac-lieu.webp",
+  dienGio: "/images/canh-dong-dien-gio-bac-lieu.webp",
+  // Điểm đến — ảnh chụp trong chuyến Cà Mau – Đất Mũi
+  uMinh: "/images/65-mui-ghe-dtc-kenh-rung-tram.webp",
+  muiCaMau: "/images/50-cot-moc-mui-ca-mau-co-do.webp",
+  cotCo: "/images/69-tuong-cua-bien-ca-mau.webp",
+  tacSay: "/images/nha-tho-tac-say.webp",
+  // Ảnh bìa tour
+  tour4n3d: "/images/23-xuong-may-tren-kenh-phu-sa.webp",
+  tour3n2d: "/images/21-ghe-cho-hang-tren-kenh-2.webp",
+  tour2n1d: "/images/62-xuong-go-ben-nha-san-beo.webp",
 };
 
 // Ngày chỉ dùng cho fixture frontend; backend sẽ thay bằng departure thật.
@@ -33,7 +32,7 @@ export const homePageData: HomePageData = {
       durationDays: 4,
       durationNights: 3,
       priceFrom: 4_190_000,
-      image: { src: IMG.uMinh, alt: "Vườn chuối trong vùng rừng tràm U Minh Hạ" },
+      image: { src: IMG.tour4n3d, alt: "Xuồng máy chạy trên kênh nước phù sa" },
       nextDeparture: { date: "2026-11-07", seatsRemaining: 24 },
       highlights: ["Xuồng máy xuyên rừng tràm", "Khách sạn 3 sao & xe máy lạnh"],
     },
@@ -46,6 +45,7 @@ export const homePageData: HomePageData = {
       durationDays: 3,
       durationNights: 2,
       priceFrom: 3_190_000,
+      image: { src: IMG.tour3n2d, alt: "Ghe chở hàng trên kênh rộng ven rặng dừa nước" },
       nextDeparture: { date: "2026-11-13", seatsRemaining: 20 },
       highlights: ["Chợ nổi Cái Răng", "Chùa Dơi & nhà công tử Bạc Liêu"],
     },
@@ -58,6 +58,7 @@ export const homePageData: HomePageData = {
       durationDays: 2,
       durationNights: 1,
       priceFrom: 1_890_000,
+      image: { src: IMG.tour2n1d, alt: "Xuồng gỗ đậu bên nhà sàn giữa ao bèo" },
       nextDeparture: { date: "2026-11-14", seatsRemaining: 16 },
       highlights: ["Homestay trong rừng", "Xuồng máy & ăn ong rừng"],
     },
@@ -137,23 +138,7 @@ export const homePageData: HomePageData = {
       province: "Cà Mau",
       shortDescription:
         "Dòng kênh nhuộm màu tràm và hệ sinh thái đất ngập nước quý giá, nơi những tổ ong gác kèo treo dưới tán rừng.",
-      image: { src: IMG.uMinh, alt: "Vườn chuối trong vùng rừng tràm U Minh Hạ" },
-    },
-    {
-      slug: "cho-noi-cai-rang",
-      name: "Chợ nổi Cái Răng",
-      province: "Cần Thơ",
-      shortDescription:
-        "Nếp sinh hoạt thương hồ trăm năm trên ngã ba sông, họp từ sáng sớm với ghe trái cây và rau củ.",
-      image: { src: IMG.caiRang, alt: "Ghe thuyền bán trái cây trên chợ nổi Cái Răng" },
-    },
-    {
-      slug: "canh-dong-dien-gio-bac-lieu",
-      name: "Cánh đồng quạt gió Bạc Liêu",
-      province: "Bạc Liêu",
-      shortDescription:
-        "Những trụ tuabin ven biển đứng giữa bãi bồi, nổi bật nhất vào cuối ngày khi nắng đổ xuống cánh đồng.",
-      image: { src: IMG.dienGio, alt: "Các trụ tuabin điện gió Bạc Liêu" },
+      image: { src: IMG.uMinh, alt: "Kênh rừng tràm nhìn từ mũi ghe" },
     },
     {
       slug: "mui-ca-mau",
@@ -161,7 +146,23 @@ export const homePageData: HomePageData = {
       province: "Ngọc Hiển · Cà Mau",
       shortDescription:
         "Nơi cuối trời phương Nam với mốc tọa độ quốc gia, cột cờ Hà Nội và rừng đước giữ chặt bãi triều.",
-      image: { src: IMG.muiCaMau, alt: "Tượng đài và mốc tọa độ tại Mũi Cà Mau" },
+      image: { src: IMG.muiCaMau, alt: "Cột mốc Mũi Cà Mau với cờ đỏ sao vàng" },
+    },
+    {
+      slug: "cho-noi-cai-rang",
+      name: "Chợ nổi Cái Răng",
+      province: "Cần Thơ",
+      shortDescription:
+        "Nếp sinh hoạt thương hồ trăm năm trên ngã ba sông, họp từ sáng sớm với ghe trái cây và rau củ.",
+      image: { src: IMG.caiRang, alt: "Ghe bán trái cây và đồ uống trên chợ nổi Cái Răng" },
+    },
+    {
+      slug: "canh-dong-dien-gio-bac-lieu",
+      name: "Cánh đồng quạt gió Bạc Liêu",
+      province: "Bạc Liêu",
+      shortDescription:
+        "Những trụ tuabin ven biển đứng giữa bãi bồi, nổi bật nhất vào cuối ngày khi nắng đổ xuống cánh đồng.",
+      image: { src: IMG.dienGio, alt: "Các trụ tuabin điện gió trên bãi bồi Bạc Liêu" },
     },
   ],
   cuisines: [

@@ -11,7 +11,7 @@
 import { randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
-import { getBookingSettings } from "@/lib/settings";
+import { getBookingSettings } from "@/server/settings/get-booking-settings";
 import { hashIp } from "@/lib/http";
 import {
   addHours,

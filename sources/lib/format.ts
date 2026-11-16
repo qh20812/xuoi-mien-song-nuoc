@@ -1,10 +1,6 @@
 /** Định dạng hiển thị dùng chung. */
 
-export function formatVnd(amount: number): string {
-  return `${amount.toLocaleString("vi-VN")}đ`;
-}
-
-/** Định dạng tiền dùng cho giao diện public. */
+/** Định dạng tiền dùng cho giao diện public và admin (có khoảng trắng trước ₫). */
 export function formatVndDisplay(amount: number): string {
   return `${amount.toLocaleString("vi-VN")} ₫`;
 }
@@ -39,11 +35,20 @@ export function formatLongDateVN(value: string): string {
 
 export function formatDateTimeVN(iso: string | null | undefined): string {
   if (!iso) return "—";
-  return new Intl.DateTimeFormat("vi-VN", {
+  const value = new Date(iso);
+  const date = new Intl.DateTimeFormat("vi-VN", {
     timeZone: "Asia/Ho_Chi_Minh",
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(iso));
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(value);
+  const time = new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(value);
+  return `${date} ${time}`;
 }
 
 /** ISO -> "Thứ Tư, 05/11/2026 lúc 22:16". */

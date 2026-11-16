@@ -2,24 +2,29 @@ import type { CuisineData, DestinationData } from "@/lib/contracts/home";
 import type { TourDetailData } from "@/lib/contracts/tour";
 
 const IMG = {
-  vinhTrang:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/Ch%C3%B9a_V%C4%A9nh_Tr%C3%A0ng_%E1%BB%9F_M%E1%BB%B9_Tho.jpg/1920px-Ch%C3%B9a_V%C4%A9nh_Tr%C3%A0ng_%E1%BB%9F_M%E1%BB%B9_Tho.jpg",
-  thoiSon:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/T%C3%A0u_du_l%E1%BB%8Bch_gh%C3%A9_c%E1%BB%93n_L%C3%A2n.jpg/1920px-T%C3%A0u_du_l%E1%BB%8Bch_gh%C3%A9_c%E1%BB%93n_L%C3%A2n.jpg",
-  caiRang:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/M%E1%BB%99t_c%E1%BA%A3nh_%E1%BB%9F_ch%E1%BB%A3_n%E1%BB%95i_C%C3%A1i_R%C4%83ng.jpg/1920px-M%E1%BB%99t_c%E1%BA%A3nh_%E1%BB%9F_ch%E1%BB%A3_n%E1%BB%95i_C%C3%A1i_R%C4%83ng.jpg",
-  binhThuy:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Nh%C3%A0_c%E1%BB%95_B%C3%ACnh_Th%E1%BB%A7y_1.jpg/1920px-Nh%C3%A0_c%E1%BB%95_B%C3%ACnh_Th%E1%BB%A7y_1.jpg",
-  chuaDoi:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Ch%C3%B9a_D%C6%A1i_%2845715215502%29.jpg/1920px-Ch%C3%B9a_D%C6%A1i_%2845715215502%29.jpg",
-  congTu:
-    "https://upload.wikimedia.org/wikipedia/commons/0/02/Nh%C3%A0_C%C3%B4ng_t%E1%BB%AD_B%E1%BA%A1c_Li%C3%AAu.jpg",
-  dienGio:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/B%E1%BA%A1c_Li%C3%AAu_windpower_farm.jpg/1920px-B%E1%BA%A1c_Li%C3%AAu_windpower_farm.jpg",
-  uMinh:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Chu%E1%BB%91i_t%E1%BA%A1i_r%E1%BB%ABng_U_Minh_h%E1%BA%A1.jpg/1920px-Chu%E1%BB%91i_t%E1%BA%A1i_r%E1%BB%ABng_U_Minh_h%E1%BA%A1.jpg",
-  muiCaMau:
-    "https://upload.wikimedia.org/wikipedia/commons/7/7b/Tuongdaimuicamau.jpg",
+  // Điểm đến tải từ Wikimedia Commons (nguồn & giấy phép: public/images/CREDITS.md)
+  vinhTrang: "/images/chua-vinh-trang.webp",
+  thoiSon: "/images/cu-lao-thoi-son.webp",
+  caiRang: "/images/cho-noi-cai-rang.webp",
+  binhThuy: "/images/nha-co-binh-thuy.webp",
+  chuaDoi: "/images/chua-doi-soc-trang.webp",
+  congTu: "/images/nha-cong-tu-bac-lieu.webp",
+  dienGio: "/images/canh-dong-dien-gio-bac-lieu.webp",
+  tacSay: "/images/nha-tho-tac-say.webp",
+  // Điểm đến & gallery — ảnh chụp trong chuyến Cà Mau – Đất Mũi
+  uMinh: "/images/65-mui-ghe-dtc-kenh-rung-tram.webp",
+  muiCaMau: "/images/50-cot-moc-mui-ca-mau-co-do.webp",
+  cotCo: "/images/69-tuong-cua-bien-ca-mau.webp",
+  gacKeo: "/images/66-dan-ong-mat-tren-gian-tre.webp",
+  gheRungDuoc: "/images/71-khach-tren-ghe-may-rung-duoc.webp",
+  loiKenh: "/images/79-nhom-tre-ngam-minh-duoi-kenh.webp",
+  hoangHon: "/images/47-du-khach-ghe-may-hoang-hon.webp",
+  tuongMe: "/images/51-tuong-dai-me-mui-ca-mau.webp",
+  kenhNho: "/images/58-kenh-nho-in-bong-cay.webp",
+  ongCanh: "/images/55-dan-ong-mat-bu-tren-canh.webp",
+  nhaSan: "/images/62-xuong-go-ben-nha-san-beo.webp",
+  gheHang: "/images/21-ghe-cho-hang-tren-kenh-2.webp",
+  xuongMay: "/images/23-xuong-may-tren-kenh-phu-sa.webp",
 };
 
 const DESTINATIONS = {
@@ -37,7 +42,7 @@ const DESTINATIONS = {
     province: "Đồng Tháp",
     shortDescription:
       "Cồn nổi giữa sông Tiền, nơi du khách đi xuồng, nghe đờn ca tài tử và thưởng thức trái cây miệt vườn.",
-    image: { src: IMG.thoiSon, alt: "Tàu du lịch ghé cồn Lân" },
+    image: { src: IMG.thoiSon, alt: "Xuồng chở khách qua kênh rừng nước ở cù lao Thới Sơn" },
   },
   caiRang: {
     slug: "cho-noi-cai-rang",
@@ -77,7 +82,7 @@ const DESTINATIONS = {
     province: "Cà Mau",
     shortDescription:
       "Những trụ tuabin điện gió ven biển nổi bật giữa bãi bồi, đẹp nhất vào cuối ngày khi nắng đổ xuống.",
-    image: { src: IMG.dienGio, alt: "Các trụ tuabin điện gió Bạc Liêu" },
+    image: { src: IMG.dienGio, alt: "Các trụ tuabin điện gió trên bãi bồi Bạc Liêu" },
   },
   uMinh: {
     slug: "vuon-quoc-gia-u-minh-ha",
@@ -85,7 +90,7 @@ const DESTINATIONS = {
     province: "Cà Mau",
     shortDescription:
       "Rừng tràm trên đất than bùn với hệ sinh thái đất ngập nước, nghề gác kèo ong và những tuyến kênh nhỏ.",
-    image: { src: IMG.uMinh, alt: "Vườn chuối trong vùng rừng tràm U Minh Hạ" },
+    image: { src: IMG.uMinh, alt: "Kênh rừng tràm nhìn từ mũi ghe" },
   },
   muiCaMau: {
     slug: "mui-ca-mau",
@@ -93,7 +98,7 @@ const DESTINATIONS = {
     province: "Cà Mau",
     shortDescription:
       "Cực Nam trên đất liền Việt Nam với mốc tọa độ quốc gia, cột cờ Hà Nội và rừng đước Năm Căn.",
-    image: { src: IMG.muiCaMau, alt: "Tượng đài và mốc tọa độ tại Mũi Cà Mau" },
+    image: { src: IMG.muiCaMau, alt: "Cột mốc Mũi Cà Mau với cờ đỏ sao vàng" },
   },
   cotCo: {
     slug: "cot-co-ha-noi-mui-ca-mau",
@@ -101,7 +106,7 @@ const DESTINATIONS = {
     province: "Cà Mau",
     shortDescription:
       "Công trình mô phỏng Cột cờ Hà Nội, cao hơn 41 m, nằm trong khu du lịch quốc gia Mũi Cà Mau.",
-    image: { src: IMG.muiCaMau, alt: "Cột cờ Hà Nội tại Mũi Cà Mau" },
+    image: { src: IMG.cotCo, alt: "Tượng cua biển và cột cờ trong khu du lịch Mũi Cà Mau" },
   },
 } satisfies Record<string, DestinationData>;
 
@@ -242,12 +247,12 @@ export const tourDetails: TourDetailData[] = [
       "Hủy miễn phí trước 3 ngày khởi hành. Sát ngày hơn, vui lòng liên hệ hotline để được hỗ trợ. Trường hợp bất khả kháng được bảo lưu hoặc hoàn theo thỏa thuận.",
     packingNotes:
       "Giày bám tốt hoặc dép quai hậu, áo chống nắng, mũ rộng vành, kem chống muỗi, thuốc say sóng, pin dự phòng. Nên mang áo mưa mỏng vì miền Tây mưa rào bất chợt.",
-    coverImage: { src: IMG.uMinh, alt: "Vườn chuối trong vùng rừng tràm U Minh Hạ" },
+    coverImage: { src: IMG.xuongMay, alt: "Xuồng máy chạy trên kênh nước phù sa" },
     gallery: [
-      { src: IMG.caiRang, alt: "Chợ nổi Cái Răng" },
-      { src: IMG.uMinh, alt: "Rừng tràm U Minh Hạ" },
-      { src: IMG.muiCaMau, alt: "Mũi Cà Mau" },
-      { src: IMG.congTu, alt: "Nhà công tử Bạc Liêu" },
+      { src: IMG.muiCaMau, alt: "Cột mốc Mũi Cà Mau với cờ đỏ sao vàng" },
+      { src: IMG.gacKeo, alt: "Giàn ong gác kèo trong rừng tràm" },
+      { src: IMG.gheRungDuoc, alt: "Đoàn khách mặc đồ bà ba trên ghe máy giữa rừng đước" },
+      { src: IMG.loiKenh, alt: "Nhóm bạn trẻ ngâm mình dưới kênh rừng đước" },
     ],
     itineraryDays: [
       {
@@ -449,11 +454,11 @@ export const tourDetails: TourDetailData[] = [
       "Hủy miễn phí trước 3 ngày khởi hành. Sát ngày hơn, vui lòng liên hệ hotline để được hỗ trợ.",
     packingNotes:
       "Áo chống nắng, mũ, kem chống muỗi, thuốc say sóng, giày bám tốt. Mang theo áo mưa mỏng.",
-    coverImage: { src: IMG.caiRang, alt: "Ghe thuyền bán trái cây trên chợ nổi Cái Răng" },
+    coverImage: { src: IMG.gheHang, alt: "Ghe chở hàng trên kênh rộng ven rặng dừa nước" },
     gallery: [
-      { src: IMG.caiRang, alt: "Chợ nổi Cái Răng" },
-      { src: IMG.chuaDoi, alt: "Chùa Dơi Sóc Trăng" },
-      { src: IMG.muiCaMau, alt: "Mũi Cà Mau" },
+      { src: IMG.tuongMe, alt: "Tượng đài Mẹ tại khu du lịch Mũi Cà Mau" },
+      { src: IMG.hoangHon, alt: "Đoàn khách trên ghe máy lúc hoàng hôn" },
+      { src: IMG.cotCo, alt: "Tượng cua biển và cột cờ trong khu du lịch Mũi Cà Mau" },
     ],
     itineraryDays: [
       {
@@ -613,10 +618,11 @@ export const tourDetails: TourDetailData[] = [
       "Hủy miễn phí trước 3 ngày khởi hành. Sát ngày hơn, vui lòng liên hệ hotline để được hỗ trợ.",
     packingNotes:
       "Quần áo dài tay, kem chống muỗi, đèn pin, dép quai hậu, thuốc dị ứng. Rừng tràm ẩm và nhiều muỗi vào chiều tối.",
-    coverImage: { src: IMG.uMinh, alt: "Vườn chuối trong vùng rừng tràm U Minh Hạ" },
+    coverImage: { src: IMG.nhaSan, alt: "Xuồng gỗ đậu bên nhà sàn giữa ao bèo" },
     gallery: [
-      { src: IMG.uMinh, alt: "Vườn chuối trong vùng rừng tràm U Minh Hạ" },
-      { src: IMG.muiCaMau, alt: "Rừng đước Cà Mau" },
+      { src: IMG.uMinh, alt: "Kênh rừng tràm nhìn từ mũi ghe" },
+      { src: IMG.kenhNho, alt: "Kênh nhỏ in bóng cây" },
+      { src: IMG.ongCanh, alt: "Đàn ong mật bám trên cành" },
     ],
     itineraryDays: [
       {

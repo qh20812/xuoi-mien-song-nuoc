@@ -1,8 +1,9 @@
 /**
- * Đọc cấu hình đặt tour từ bảng settings (JSON), có giá trị mặc định và
- * chặn giá trị bất thường do admin nhập.
+ * Cấu hình đặt tour: type, giá trị mặc định và hàm chuẩn hoá thuần.
+ *
+ * Phần đọc database nằm ở `server/settings/get-booking-settings.ts` — `lib/`
+ * không được phụ thuộc Prisma, để giữ ranh giới layer.
  */
-import prisma from "@/lib/prisma";
 
 export type BookingSettings = {
   /** Số ngày tối thiểu phải đặt trước ngày khởi hành. */
@@ -33,24 +34,24 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-export async function getBookingSettings(): Promise<BookingSettings> {
-  const row = await prisma.setting.findUnique({
-    where: { key: "booking" },
-    select: { value: true },
-  });
-  const value = asRecord(row?.value);
+/**
+ * Kẹp cấu hình do admin nhập về khoảng an toàn.
+ * Giá trị thiếu hoặc sai kiểu rơi về `DEFAULT_BOOKING_SETTINGS`.
+ */
+export function normalizeBookingSettings(value: unknown): BookingSettings {
+  const raw = asRecord(value);
 
   return {
-    minDaysAhead: clampInt(value.minDaysAhead, DEFAULT_BOOKING_SETTINGS.minDaysAhead, 0, 60),
+    minDaysAhead: clampInt(raw.minDaysAhead, DEFAULT_BOOKING_SETTINGS.minDaysAhead, 0, 60),
     maxGuestsPerOrder: clampInt(
-      value.maxGuestsPerOrder,
+      raw.maxGuestsPerOrder,
       DEFAULT_BOOKING_SETTINGS.maxGuestsPerOrder,
       1,
       50,
     ),
-    holdHours: clampInt(value.holdHours, DEFAULT_BOOKING_SETTINGS.holdHours, 1, 168),
+    holdHours: clampInt(raw.holdHours, DEFAULT_BOOKING_SETTINGS.holdHours, 1, 168),
     cancelCutoffDays: clampInt(
-      value.cancelCutoffDays,
+      raw.cancelCutoffDays,
       DEFAULT_BOOKING_SETTINGS.cancelCutoffDays,
       0,
       30,

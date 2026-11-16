@@ -1,24 +1,19 @@
 import type { DestinationRecord } from "@/lib/contracts/destination";
 
 const IMG = {
-  vinhTrang:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/Ch%C3%B9a_V%C4%A9nh_Tr%C3%A0ng_%E1%BB%9F_M%E1%BB%B9_Tho.jpg/1920px-Ch%C3%B9a_V%C4%A9nh_Tr%C3%A0ng_%E1%BB%9F_M%E1%BB%B9_Tho.jpg",
-  thoiSon:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/T%C3%A0u_du_l%E1%BB%8Bch_gh%C3%A9_c%E1%BB%93n_L%C3%A2n.jpg/1920px-T%C3%A0u_du_l%E1%BB%8Bch_gh%C3%A9_c%E1%BB%93n_L%C3%A2n.jpg",
-  caiRang:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/M%E1%BB%99t_c%E1%BA%A3nh_%E1%BB%9F_ch%E1%BB%A3_n%E1%BB%95i_C%C3%A1i_R%C4%83ng.jpg/1920px-M%E1%BB%99t_c%E1%BA%A3nh_%E1%BB%9F_ch%E1%BB%A3_n%E1%BB%95i_C%C3%A1i_R%C4%83ng.jpg",
-  binhThuy:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Nh%C3%A0_c%E1%BB%95_B%C3%ACnh_Th%E1%BB%A7y_1.jpg/1920px-Nh%C3%A0_c%E1%BB%95_B%C3%ACnh_Th%E1%BB%A7y_1.jpg",
-  chuaDoi:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Ch%C3%B9a_D%C6%A1i_%2845715215502%29.jpg/1920px-Ch%C3%B9a_D%C6%A1i_%2845715215502%29.jpg",
-  congTu:
-    "https://upload.wikimedia.org/wikipedia/commons/0/02/Nh%C3%A0_C%C3%B4ng_t%E1%BB%AD_B%E1%BA%A1c_Li%C3%AAu.jpg",
-  dienGio:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/B%E1%BA%A1c_Li%C3%AAu_windpower_farm.jpg/1920px-B%E1%BA%A1c_Li%C3%AAu_windpower_farm.jpg",
-  uMinh:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Chu%E1%BB%91i_t%E1%BA%A1i_r%E1%BB%ABng_U_Minh_h%E1%BA%A1.jpg/1920px-Chu%E1%BB%91i_t%E1%BA%A1i_r%E1%BB%ABng_U_Minh_h%E1%BA%A1.jpg",
-  muiCaMau:
-    "https://upload.wikimedia.org/wikipedia/commons/7/7b/Tuongdaimuicamau.jpg",
+  // Ảnh điểm đến tải từ Wikimedia Commons (nguồn & giấy phép: public/images/CREDITS.md)
+  vinhTrang: "/images/chua-vinh-trang.webp",
+  thoiSon: "/images/cu-lao-thoi-son.webp",
+  caiRang: "/images/cho-noi-cai-rang.webp",
+  binhThuy: "/images/nha-co-binh-thuy.webp",
+  chuaDoi: "/images/chua-doi-soc-trang.webp",
+  congTu: "/images/nha-cong-tu-bac-lieu.webp",
+  dienGio: "/images/canh-dong-dien-gio-bac-lieu.webp",
+  tacSay: "/images/nha-tho-tac-say.webp",
+  // Ảnh chụp trong chuyến Cà Mau – Đất Mũi
+  uMinh: "/images/65-mui-ghe-dtc-kenh-rung-tram.webp",
+  muiCaMau: "/images/50-cot-moc-mui-ca-mau-co-do.webp",
+  cotCo: "/images/69-tuong-cua-bien-ca-mau.webp",
 };
 
 export const destinations: DestinationRecord[] = [
@@ -51,7 +46,7 @@ export const destinations: DestinationRecord[] = [
     bestSeason: "Mùa trái cây tháng 5 – tháng 8",
     travelNote:
       "Từ chùa Vĩnh Tràng ra bến thuyền khoảng 10 phút; thời gian tham quan cồn khoảng 2 giờ.",
-    image: { src: IMG.thoiSon, alt: "Tàu du lịch ghé cồn Lân" },
+    image: { src: IMG.thoiSon, alt: "Xuồng chở khách qua kênh rừng nước ở cù lao Thới Sơn" },
     lat: 10.332361,
     lng: 106.330139,
     sortOrder: 2,
@@ -135,7 +130,7 @@ export const destinations: DestinationRecord[] = [
     bestSeason: "Tháng 12 – tháng 4 (trời khô, nắng đẹp)",
     travelNote:
       "Cách trung tâm Bạc Liêu khoảng 15–20 phút xe; nên đi cuối chiều để ngắm hoàng hôn.",
-    image: { src: IMG.dienGio, alt: "Các trụ tuabin điện gió Bạc Liêu" },
+    image: { src: IMG.dienGio, alt: "Các trụ tuabin điện gió trên bãi bồi Bạc Liêu" },
     lat: 9.2212,
     lng: 105.8009,
     sortOrder: 7,
@@ -152,7 +147,7 @@ export const destinations: DestinationRecord[] = [
     bestSeason: "Mùa khô tháng 12 – tháng 4; mùa nước nổi tháng 9 – tháng 11",
     travelNote:
       "Cách TP Cà Mau khoảng 35 km; từ Bạc Liêu khoảng 95 km (1 giờ 45 phút).",
-    image: { src: IMG.uMinh, alt: "Vườn chuối trong vùng rừng tràm U Minh Hạ" },
+    image: { src: IMG.uMinh, alt: "Kênh rừng tràm nhìn từ mũi ghe" },
     lat: 9.251389,
     lng: 104.945278,
     sortOrder: 8,
@@ -169,7 +164,7 @@ export const destinations: DestinationRecord[] = [
     bestSeason: "Tháng 12 – tháng 4; hoàng hôn đẹp nhất khoảng 17:30–18:00",
     travelNote:
       "Cách TP Cà Mau khoảng 100 km (2 giờ 30 phút); từ U Minh Hạ khoảng 136 km.",
-    image: { src: IMG.muiCaMau, alt: "Tượng đài và mốc tọa độ tại Mũi Cà Mau" },
+    image: { src: IMG.muiCaMau, alt: "Cột mốc Mũi Cà Mau với cờ đỏ sao vàng" },
     lat: 8.60723,
     lng: 104.720412,
     sortOrder: 9,
@@ -186,7 +181,10 @@ export const destinations: DestinationRecord[] = [
     bestSeason: "Cả năm",
     travelNote:
       "Nằm trong cùng khuôn viên với mốc tọa độ Đất Mũi, đi bộ hoặc xe điện từ cổng.",
-    image: { src: IMG.muiCaMau, alt: "Cột cờ Hà Nội tại Mũi Cà Mau" },
+    image: {
+      src: IMG.cotCo,
+      alt: "Tượng cua biển và cột cờ trong khu du lịch Mũi Cà Mau",
+    },
     lat: 8.6075,
     lng: 104.7208,
     sortOrder: 10,
@@ -203,7 +201,7 @@ export const destinations: DestinationRecord[] = [
     bestSeason: "Cả năm; đông nhất vào tháng 12 và dịp lễ Cha Diệp (tháng 3 âm lịch)",
     travelNote:
       "Nằm trên QL1A, cách TP Bạc Liêu khoảng 40 km; thuận tiện dừng trên đường Sóc Trăng – Cà Mau.",
-    image: null,
+    image: { src: IMG.tacSay, alt: "Nhà thờ Tắc Sậy ở Cà Mau" },
     lat: null,
     lng: null,
     sortOrder: 11,

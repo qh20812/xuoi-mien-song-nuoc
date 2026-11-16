@@ -15,7 +15,8 @@ import {
   getTourDetailBySlug,
   tourDetails,
 } from "@/lib/fixtures/tour-details";
-import { siteSettings } from "@/lib/fixtures/site";
+import { getBookableDepartures } from "@/server/catalog/get-bookable-departures";
+import { getSiteSettings } from "@/server/settings/get-site-settings";
 
 type TourDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -62,12 +63,19 @@ export default async function TourDetailPage({ params }: TourDetailPageProps) {
     ...tour.gallery.filter((image) => image.src !== tour.coverImage.src),
   ];
 
+  // Lịch khởi hành thật từ MySQL — fixture chỉ dùng cho nội dung marketing.
+  // Cấu hình đặt tour (hạn giữ chỗ, hạn huỷ, giới hạn khách) cũng lấy từ DB.
+  const [departures, settings] = await Promise.all([
+    getBookableDepartures(tour.slug),
+    getSiteSettings(),
+  ]);
+
   return (
     <Container className="pb-16 md:pb-24">
       <TourHeading tour={tour} />
       <TourGallery images={galleryImages} />
 
-      <TourBooking tour={tour} settings={siteSettings}>
+      <TourBooking tour={tour} departures={departures} settings={settings}>
         <div className="flex flex-col gap-12 md:gap-16">
           <TourOverview tour={tour} />
           <ItineraryTimeline tour={tour} />
@@ -75,7 +83,7 @@ export default async function TourDetailPage({ params }: TourDetailPageProps) {
           <TourCuisines tour={tour} />
           <IncludedExcluded tour={tour} />
           <PackingNotes tour={tour} />
-          <BookingPolicy settings={siteSettings} />
+          <BookingPolicy settings={settings} />
         </div>
       </TourBooking>
     </Container>

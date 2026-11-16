@@ -54,7 +54,8 @@ export type PublicOrder = {
     cutoffDays: number;
     deadline: string;
     canCancel: boolean;
-    policy: string;
+    /** `null` khi tour chưa cấu hình chính sách huỷ. */
+    policy: string | null;
     note: string;
   };
   holdExpiresAt: string | null;

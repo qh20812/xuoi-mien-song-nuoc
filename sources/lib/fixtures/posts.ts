@@ -1,10 +1,10 @@
 import type { PostRecord } from "@/lib/contracts/post";
 
 const IMG = {
-  uMinh:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Chu%E1%BB%91i_t%E1%BA%A1i_r%E1%BB%ABng_U_Minh_h%E1%BA%A1.jpg/1920px-Chu%E1%BB%91i_t%E1%BA%A1i_r%E1%BB%ABng_U_Minh_h%E1%BA%A1.jpg",
-  muiCaMau:
-    "https://upload.wikimedia.org/wikipedia/commons/7/7b/Tuongdaimuicamau.jpg",
+  // Ảnh chụp trong chuyến Cà Mau – Đất Mũi
+  kenhBeo: "/images/63-mui-ghe-dtc-kenh-beo.webp",
+  rungTram: "/images/36-nguoi-dan-luoi-trong-rung-tram.webp",
+  tuongMe: "/images/51-tuong-dai-me-mui-ca-mau.webp",
 };
 
 export const posts: PostRecord[] = [
@@ -25,7 +25,7 @@ Một lưu ý thực tế: rừng tràm rất ẩm và nhiều muỗi vào chi�
     category: "kinh-nghiem",
     tags: ["u-minh-ha", "mua-nao", "sinh-thai"],
     topic: "thoi-tiet",
-    coverImage: { src: IMG.uMinh, alt: "Vườn chuối trong vùng rừng tràm U Minh Hạ" },
+    coverImage: { src: IMG.kenhBeo, alt: "Mũi ghe len qua lòng kênh phủ kín bèo" },
     publishedAt: "2026-09-15T08:00:00Z",
     relatedTourCodes: ["XMSN-4N3D", "XMSN-2N1D"],
   },
@@ -50,7 +50,7 @@ Cuối cùng: mang theo tiền mặt. Nhiều homestay và quán nhỏ trong vù
     category: "kinh-nghiem",
     tags: ["u-minh-ha", "hanh-ly", "an-toan"],
     topic: "hanh-ly",
-    coverImage: { src: IMG.uMinh, alt: "Vườn chuối trong vùng rừng tràm U Minh Hạ" },
+    coverImage: { src: IMG.rungTram, alt: "Người dân đặt lưới trong rừng tràm" },
     publishedAt: "2026-09-28T08:00:00Z",
     relatedTourCodes: ["XMSN-4N3D", "XMSN-2N1D"],
     checklist: [
@@ -81,7 +81,7 @@ Cuối cùng: mang theo tiền mặt. Nhiều homestay và quán nhỏ trong vù
     category: "kinh-nghiem",
     tags: ["dat-mui", "ca-mau", "mot-ngay"],
     topic: "dat-mui",
-    coverImage: { src: IMG.muiCaMau, alt: "Tượng đài và mốc tọa độ tại Mũi Cà Mau" },
+    coverImage: { src: IMG.tuongMe, alt: "Tượng đài Mẹ tại khu du lịch Mũi Cà Mau" },
     publishedAt: "2026-10-10T08:00:00Z",
     relatedTourCodes: ["XMSN-4N3D", "XMSN-3N2D"],
   },

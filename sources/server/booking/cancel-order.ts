@@ -8,7 +8,8 @@
 import { timingSafeEqual } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
-import { getBookingSettings, type BookingSettings } from "@/lib/settings";
+import { type BookingSettings } from "@/lib/settings";
+import { getBookingSettings } from "@/server/settings/get-booking-settings";
 import { cancelDeadline, daysUntilDeparture } from "@/lib/time";
 import { cancelOrderSchema } from "@/lib/validation/order";
 import {

@@ -15,7 +15,11 @@ import { StepReview } from "@/components/booking/step-review";
 import { StepTourSelection } from "@/components/booking/step-tour-selection";
 import { buttonVariants } from "@/components/ui/button";
 import { calculateBookingPreview, totalSeats } from "@/lib/booking/preview";
-import { submitBookingRequest } from "@/lib/booking/submit";
+import {
+  bookingErrorMessage,
+  submitBookingRequest,
+} from "@/lib/booking/submit";
+import { orderDtoToBookingSuccess } from "@/lib/booking/success";
 import {
   normalizePhone,
   passengerTypeAt,
@@ -36,13 +40,7 @@ import type { TourDepartureOption } from "@/lib/contracts/tour";
 import {
   formatLongDateVN,
   formatVndDisplay,
-  maskPhone,
 } from "@/lib/format";
-import {
-  cancelDeadline,
-  isAtLeastDaysAhead,
-  parseDateOnly,
-} from "@/lib/time";
 import { cn } from "@/lib/utils";
 
 type BookingWizardProps = {
@@ -352,43 +350,14 @@ export function BookingWizard({ tours, settings, initial }: BookingWizardProps) 
         passengers: buildPassengers(),
       };
 
-      const result = await submitBookingRequest(
-        payload,
-        settings.booking.holdHours,
-      );
+      const order = await submitBookingRequest(payload);
 
-      setSuccess({
-        code: result.code,
-        status: "new",
-        statusLabel: "Chờ xác nhận",
-        holdExpiresAt: result.holdExpiresAt,
-        tourCode: selectedTour.code,
-        tourName: selectedTour.name,
-        tourSlug: selectedTour.slug,
-        durationDays: selectedTour.durationDays,
-        durationNights: selectedTour.durationNights,
-        coverImage: selectedTour.coverImage,
-        departureDate: departure.date,
-        contactName: payload.contactName,
-        phoneMasked: maskPhone(payload.phone),
-        guests,
-        totalAmount: preview.total,
-        pickupPoint: contact.pickupPoint,
-        cancellationDeadline: cancelDeadline(
-          departure.date,
-          settings.booking.cancelCutoffDays,
-        ),
-        canCancel:
-          isAtLeastDaysAhead(
-            parseDateOnly(departure.date),
-            settings.booking.cancelCutoffDays,
-          ),
-      });
+      // Mọi số liệu hiển thị lấy từ đơn server vừa tạo — không dùng state client,
+      // để tổng tiền và hạn giữ chỗ luôn khớp với đơn thật trong database.
+      setSuccess(orderDtoToBookingSuccess(order));
       window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch {
-      setServerError(
-        "Không thể gửi yêu cầu giữ chỗ. Vui lòng kiểm tra kết nối và thử lại.",
-      );
+    } catch (error) {
+      setServerError(bookingErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
@@ -504,6 +473,7 @@ export function BookingWizard({ tours, settings, initial }: BookingWizardProps) 
                   selectedDeparture={selectedDeparture}
                   guests={guests}
                   maxSeats={maxSeats}
+                  maxGuestsPerOrder={settings.booking.maxGuestsPerOrder}
                   error={errors.step1}
                   onSelectTour={selectTour}
                   onSelectDeparture={selectDeparture}

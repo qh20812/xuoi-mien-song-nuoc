@@ -17,6 +17,8 @@ type StepTourSelectionProps = {
   selectedDeparture: TourDepartureOption | null;
   guests: BookingGuestCounts;
   maxSeats: number;
+  /** Giới hạn khách mỗi đơn, đọc từ `settings.booking` trong database. */
+  maxGuestsPerOrder: number;
   error?: string;
   onSelectTour: (tour: BookingTourOption) => void;
   onSelectDeparture: (departure: TourDepartureOption) => void;
@@ -32,6 +34,7 @@ export function StepTourSelection({
   selectedDeparture,
   guests,
   maxSeats,
+  maxGuestsPerOrder,
   error,
   onSelectTour,
   onSelectDeparture,
@@ -70,13 +73,15 @@ export function StepTourSelection({
                   className="sr-only"
                 />
                 <div className="relative aspect-[16/10] overflow-hidden bg-surface-warm">
-                  <Image
-                    src={tour.coverImage.src}
-                    alt={tour.coverImage.alt}
-                    fill
-                    sizes="(min-width: 768px) 30vw, 100vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                  />
+                  {tour.coverImage ? (
+                    <Image
+                      src={tour.coverImage.src}
+                      alt={tour.coverImage.alt}
+                      fill
+                      sizes="(min-width: 768px) 30vw, 100vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                    />
+                  ) : null}
                 </div>
                 <div className="flex flex-1 flex-col p-4">
                   <div className="flex items-center justify-between gap-2">
@@ -170,7 +175,8 @@ export function StepTourSelection({
         </div>
         <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-sage">
           <Info aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-clay" />
-          Em bé miễn phí nhưng vẫn chiếm một chỗ ngồi. Mỗi đơn tối đa 20 khách.
+          Em bé miễn phí nhưng vẫn chiếm một chỗ ngồi. Mỗi đơn tối đa{" "}
+          {maxGuestsPerOrder} khách.
         </p>
       </section>
 

@@ -227,7 +227,8 @@ export function LookupResult({ order, onRequestCancel }: LookupResultProps) {
             <p className="mt-1 text-sm leading-6 text-sage">
               {isCancelled && order.cancelReason
                 ? `Lý do: ${order.cancelReason}.`
-                : order.cancellation.policy}
+                : (order.cancellation.policy ??
+                  "Chưa có chính sách huỷ cho tour này.")}
             </p>
           </div>
         </div>

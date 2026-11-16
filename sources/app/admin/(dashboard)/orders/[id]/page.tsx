@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { StatusBadge } from "@/components/admin/status-badge";
+import type { ReactNode } from "react";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { OrderActions } from "@/components/admin/order-actions";
+import { HoldExpiredLabel, StatusBadge } from "@/components/admin/status-badge";
 import { requireAdminPage } from "@/lib/auth/session";
-import { formatDateVN, formatDateTimeVN, formatVnd } from "@/lib/format";
+import { statusLabel } from "@/lib/booking/status-labels";
+import { formatDateVN, formatDateTimeVN, formatVndDisplay } from "@/lib/format";
 import { getAdminOrderById } from "@/server/booking/admin-update-order";
 import { BookingError } from "@/server/booking/errors";
 import { updateOrderAction } from "./actions";
@@ -11,11 +15,46 @@ export const metadata = {
   title: "Chi tiết đơn | Quản trị Xuôi Miền Sông Nước",
 };
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+const SOURCE_LABELS: Record<string, string> = {
+  web: "Website",
+  zalo: "Zalo",
+  phone: "Điện thoại",
+  facebook: "Facebook",
+};
+
+function SectionCard({
+  title,
+  aside,
+  children,
+}: {
+  title: string;
+  aside?: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-sm">{children}</dd>
+    <section className="rounded-xl border border-line bg-surface p-5 sm:p-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-[16px] font-semibold text-ink">{title}</h2>
+        {aside}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Field({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <dt className="text-[12px] font-semibold text-sage">{label}</dt>
+      <dd className="mt-1 text-[14px] leading-relaxed text-ink">{children || "—"}</dd>
     </div>
   );
 }
@@ -42,191 +81,230 @@ export default async function AdminOrderDetailPage({
     throw caught;
   }
 
-  const canCancel = ["new", "pending", "confirmed"].includes(order.status);
-
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <Link href="/admin/orders" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Danh sách đơn
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-xl font-semibold">{order.code}</h1>
-          <StatusBadge status={order.status} />
-          {order.holdExpired ? (
-            <span className="text-sm font-medium text-rose-600">Quá hạn giữ chỗ</span>
-          ) : null}
-        </div>
-        {order.holdExpiresAt && order.status === "new" ? (
-          <p className="mt-1 text-sm text-muted-foreground">
-            Giữ chỗ đến {formatDateTimeVN(order.holdExpiresAt)}
-          </p>
-        ) : null}
-      </div>
+      <AdminPageHeader
+        breadcrumb={[
+          { label: "Quản trị", href: "/admin" },
+          { label: "Đơn hàng", href: "/admin/orders" },
+          { label: order.code },
+        ]}
+        title={order.code}
+        titleClassName="font-mono text-[24px] tracking-[-0.01em] sm:text-[26px]"
+        description={
+          order.status === "new" && order.holdExpiresAt
+            ? `Giữ chỗ đến ${formatDateTimeVN(order.holdExpiresAt)}`
+            : undefined
+        }
+        actions={
+          <>
+            <StatusBadge status={order.status} />
+            {order.holdExpired ? <HoldExpiredLabel /> : null}
+          </>
+        }
+      />
 
       {error ? (
-        <p role="alert" className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">
+        <p
+          role="alert"
+          className="rounded-[8px] border border-danger/20 bg-danger/10 px-3 py-2.5 text-[13px] font-medium text-danger"
+        >
           {error}
         </p>
       ) : null}
 
-      <section className="grid gap-6 rounded-lg border border-border bg-card p-4 md:grid-cols-2">
-        <dl className="grid grid-cols-2 gap-4">
-          <Field label="Người đặt">{order.contactName}</Field>
-          <Field label="Điện thoại">{order.phone}</Field>
-          <Field label="Email">{order.email ?? "—"}</Field>
-          <Field label="Điểm đón">{order.pickupPoint ?? "—"}</Field>
-          <Field label="Tạo lúc">{formatDateTimeVN(order.createdAt)}</Field>
-          <Field label="Nguồn">{order.source}</Field>
-          <div className="col-span-2">
-            <Field label="Ghi chú của khách">{order.customerNote ?? "—"}</Field>
-          </div>
-        </dl>
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+        <div className="flex flex-col gap-6 lg:col-span-8">
+          <SectionCard title="Khách đặt">
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Người đặt">{order.contactName}</Field>
+              <Field label="Điện thoại">
+                <a
+                  href={`tel:${order.phone.replace(/\s/g, "")}`}
+                  className="font-medium text-ink underline-offset-4 hover:text-clay hover:underline focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
+                >
+                  {order.phone}
+                </a>
+              </Field>
+              <Field label="Email">{order.email}</Field>
+              <Field label="Điểm đón">{order.pickupPoint}</Field>
+              <Field label="Tạo lúc">{formatDateTimeVN(order.createdAt)}</Field>
+              <Field label="Nguồn">{SOURCE_LABELS[order.source] ?? order.source}</Field>
+              <Field label="Ghi chú của khách" className="sm:col-span-2">
+                {order.customerNote}
+              </Field>
+            </dl>
+          </SectionCard>
 
-        <dl className="grid grid-cols-2 gap-4">
-          <Field label="Tour">
-            {order.tour.code} — {order.tour.name}
-          </Field>
-          <Field label="Khởi hành">{formatDateVN(order.departure.date)}</Field>
-          <Field label="Kết thúc">{formatDateVN(order.departure.returnDate)}</Field>
-          <Field label="Điểm hẹn">{order.departure.meetingPoint ?? "—"}</Field>
-          <Field label="Người lớn">{order.guests.adults}</Field>
-          <Field label="Trẻ em">{order.guests.children}</Field>
-          <Field label="Em bé">{order.guests.infants}</Field>
-          <Field label="Tổng chỗ">{order.guests.seats}</Field>
-        </dl>
-      </section>
+          <SectionCard title="Chuyến đi">
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Tour" className="sm:col-span-2">
+                <span className="font-mono text-[13px] text-clay">{order.tour.code}</span>
+                <span className="mt-0.5 block font-medium">{order.tour.name}</span>
+              </Field>
+              <Field label="Khởi hành">{formatDateVN(order.departure.date)}</Field>
+              <Field label="Kết thúc">{formatDateVN(order.departure.returnDate)}</Field>
+              <Field label="Điểm hẹn" className="sm:col-span-2">
+                {order.departure.meetingPoint}
+              </Field>
+              <Field label="Người lớn">{order.guests.adults}</Field>
+              <Field label="Trẻ em">{order.guests.children}</Field>
+              <Field label="Em bé">
+                {order.guests.infants}
+                <span className="mt-0.5 block text-[12px] text-sage">
+                  Em bé vẫn chiếm chỗ, miễn phí.
+                </span>
+              </Field>
+              <Field label="Tổng chỗ">{order.guests.seats}</Field>
+            </dl>
+          </SectionCard>
 
-      <section className="rounded-lg border border-border bg-card p-4">
-        <h2 className="text-sm font-semibold">Chi phí</h2>
-        <dl className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Field label="Người lớn">{formatVnd(order.pricing.unitPriceAdult)}</Field>
-          <Field label="Trẻ em">{formatVnd(order.pricing.unitPriceChild)}</Field>
-          <Field label="Phụ thu">{formatVnd(order.pricing.surcharge)}</Field>
-          <Field label="Tổng cộng">
-            <span className="font-semibold">{formatVnd(order.pricing.totalAmount)}</span>
-          </Field>
-        </dl>
-      </section>
-
-      <section className="rounded-lg border border-border bg-card p-4">
-        <h2 className="text-sm font-semibold">Hành khách</h2>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-muted-foreground">
-              <tr>
-                <th className="py-1 font-medium">#</th>
-                <th className="py-1 font-medium">Họ tên</th>
-                <th className="py-1 font-medium">Loại</th>
-                <th className="py-1 font-medium">Năm sinh</th>
-                <th className="py-1 font-medium">Ghi chú</th>
-              </tr>
-            </thead>
-            <tbody>
-              {order.passengers.map((passenger, index) => (
-                <tr key={index} className="border-t border-border/60">
-                  <td className="py-1.5">{index + 1}</td>
-                  <td className="py-1.5">{passenger.fullName ?? "—"}</td>
-                  <td className="py-1.5">{passenger.typeLabel}</td>
-                  <td className="py-1.5">{passenger.birthYear ?? "—"}</td>
-                  <td className="py-1.5">{passenger.note ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <SectionCard
+            title="Hành khách"
+            aside={<span className="text-[12px] text-sage">{order.passengers.length} hành khách</span>}
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-[13px]">
+                <thead>
+                  <tr className="border-b border-line">
+                    <th scope="col" className="py-2 pr-3 text-[12px] font-semibold text-sage">
+                      #
+                    </th>
+                    <th scope="col" className="py-2 pr-3 text-[12px] font-semibold text-sage">
+                      Họ tên
+                    </th>
+                    <th scope="col" className="py-2 pr-3 text-[12px] font-semibold text-sage">
+                      Loại
+                    </th>
+                    <th scope="col" className="py-2 pr-3 text-[12px] font-semibold text-sage">
+                      Năm sinh
+                    </th>
+                    <th scope="col" className="py-2 text-[12px] font-semibold text-sage">
+                      Ghi chú
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {order.passengers.map((passenger, index) => (
+                    <tr key={`${passenger.fullName ?? "khach"}-${index}`}>
+                      <td className="py-2.5 pr-3 tabular-nums text-sage">{index + 1}</td>
+                      <td className="py-2.5 pr-3 font-medium text-ink">
+                        {passenger.fullName ?? "—"}
+                      </td>
+                      <td className="py-2.5 pr-3 text-ink">{passenger.typeLabel}</td>
+                      <td className="py-2.5 pr-3 tabular-nums text-ink">
+                        {passenger.birthYear ?? "—"}
+                      </td>
+                      <td className="py-2.5 text-sage">{passenger.note ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </SectionCard>
         </div>
-      </section>
 
-      <section className="rounded-lg border border-border bg-card p-4">
-        <h2 className="text-sm font-semibold">Hành động</h2>
-        <div className="mt-3 flex flex-wrap items-end gap-3">
-          {order.status === "new" ? (
-            <form action={updateOrderAction}>
-              <input type="hidden" name="orderId" value={order.id} />
-              <input type="hidden" name="action" value="pending" />
-              <button
-                type="submit"
-                className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted"
-              >
-                Đã liên hệ khách
-              </button>
-            </form>
-          ) : null}
+        <div className="flex flex-col gap-6 lg:sticky lg:top-6 lg:col-span-4">
+          <SectionCard title="Chi phí">
+            <dl className="flex flex-col gap-3 text-[13px]">
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-sage">Người lớn</dt>
+                <dd className="whitespace-nowrap tabular-nums text-ink">
+                  {formatVndDisplay(order.pricing.unitPriceAdult)}
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-sage">Trẻ em</dt>
+                <dd className="whitespace-nowrap tabular-nums text-ink">
+                  {formatVndDisplay(order.pricing.unitPriceChild)}
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-sage">Phụ thu</dt>
+                <dd className="whitespace-nowrap tabular-nums text-ink">
+                  {formatVndDisplay(order.pricing.surcharge)}
+                </dd>
+              </div>
+              <div className="mt-1 flex items-baseline justify-between gap-3 border-t border-line pt-3">
+                <dt className="text-[14px] font-semibold text-ink">Tổng cộng</dt>
+                <dd className="whitespace-nowrap font-mono text-[20px] font-semibold tabular-nums text-ink">
+                  {formatVndDisplay(order.pricing.totalAmount)}
+                </dd>
+              </div>
+            </dl>
+          </SectionCard>
 
-          {order.status === "new" || order.status === "pending" ? (
-            <form action={updateOrderAction}>
-              <input type="hidden" name="orderId" value={order.id} />
-              <input type="hidden" name="action" value="confirm" />
-              <button
-                type="submit"
-                className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
-              >
-                Xác nhận đơn
-              </button>
-            </form>
-          ) : null}
+          <SectionCard title="Hành động">
+            <OrderActions
+              orderId={order.id}
+              status={order.status}
+              updateOrder={updateOrderAction}
+            />
+          </SectionCard>
 
-          {order.status === "confirmed" ? (
-            <form action={updateOrderAction}>
-              <input type="hidden" name="orderId" value={order.id} />
-              <input type="hidden" name="action" value="complete" />
-              <button
-                type="submit"
-                className="rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
-              >
-                Đánh dấu hoàn thành
-              </button>
-            </form>
-          ) : null}
+          <SectionCard title="Chính sách huỷ">
+            <p className="text-[12px] leading-relaxed text-sage">
+              {order.cancellation.policy || "—"}
+            </p>
+            <p className="mt-2 text-[12px] text-sage">
+              Hạn tự huỷ của khách:{" "}
+              <span className="font-medium whitespace-nowrap tabular-nums text-ink">
+                {formatDateVN(order.cancellation.deadline)}
+              </span>
+            </p>
+          </SectionCard>
+        </div>
+      </div>
 
-          {canCancel ? (
-            <form action={updateOrderAction} className="flex items-end gap-2">
-              <input type="hidden" name="orderId" value={order.id} />
-              <input type="hidden" name="action" value="cancel" />
-              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                Lý do huỷ
-                <input
-                  name="reason"
-                  placeholder="Khách báo huỷ…"
-                  className="w-56 rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground"
+      <SectionCard
+        title="Lịch sử trạng thái"
+        aside={
+          <span className="text-[12px] text-sage">{order.statusHistory.length} ghi nhận</span>
+        }
+      >
+        {order.statusHistory.length === 0 ? (
+          <p className="text-[13px] text-sage">Chưa có ghi nhận nào.</p>
+        ) : (
+          <ol className="relative flex flex-col gap-5 border-l border-line pl-6">
+            {order.statusHistory.map((row, index) => (
+              <li key={`${row.createdAt}-${index}`} className="relative">
+                <span
+                  aria-hidden="true"
+                  className={`absolute top-1.5 -left-[29px] size-2 rounded-full ring-4 ring-surface ${
+                    index === 0 ? "bg-clay" : "bg-ink/30"
+                  }`}
                 />
-              </label>
-              <button
-                type="submit"
-                className="rounded-md border border-rose-300 px-3 py-1.5 text-sm font-medium text-rose-700 hover:bg-rose-50"
-              >
-                Huỷ đơn
-              </button>
-            </form>
-          ) : null}
-        </div>
-
-        <p className="mt-3 text-xs text-muted-foreground">
-          Chính sách: {order.cancellation.policy ?? "—"} Hạn tự huỷ của khách là{" "}
-          {formatDateVN(order.cancellation.deadline)}.
-        </p>
-      </section>
-
-      <section className="rounded-lg border border-border bg-card p-4">
-        <h2 className="text-sm font-semibold">Lịch sử trạng thái</h2>
-        <ol className="mt-3 flex flex-col gap-3">
-          {order.statusHistory.map((row, index) => (
-            <li key={index} className="flex gap-3 text-sm">
-              <span className="w-36 shrink-0 text-muted-foreground">
-                {formatDateTimeVN(row.createdAt)}
-              </span>
-              <span>
-                {row.fromStatus ? `${row.fromStatus} → ` : ""}
-                <strong>{row.toStatus}</strong>
-                {row.note ? ` — ${row.note}` : ""}
-                {row.changedBy ? (
-                  <span className="text-muted-foreground"> (admin #{row.changedBy})</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <time className="text-[12px] tabular-nums text-sage">
+                    {formatDateTimeVN(row.createdAt)}
+                  </time>
+                  <StatusBadge status={row.toStatus} />
+                  {row.fromStatus ? (
+                    <span className="text-[12px] text-sage">
+                      {statusLabel(row.fromStatus)} →
+                    </span>
+                  ) : null}
+                </div>
+                {row.note ? (
+                  <p className="mt-1 text-[13px] leading-relaxed text-ink">{row.note}</p>
                 ) : null}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </section>
+                <p className="mt-0.5 text-[12px] text-sage">
+                  {row.changedBy ? `bởi quản trị viên #${row.changedBy}` : "Hệ thống tự động"}
+                </p>
+              </li>
+            ))}
+          </ol>
+        )}
+      </SectionCard>
+
+      <p className="text-[12px] text-sage">
+        <Link
+          href="/admin/orders"
+          className="font-medium underline-offset-4 hover:text-ink hover:underline focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
+        >
+          ← Về danh sách đơn
+        </Link>
+      </p>
     </div>
   );
 }

@@ -22,10 +22,15 @@ const phoneSchema = z
   .transform(normalizePhone)
   .refine((value) => /^0\d{9}$/.test(value), "Số điện thoại không hợp lệ");
 
-const optionalEmail = z.preprocess(
-  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-  z.string().trim().email("Email không hợp lệ").max(160).optional(),
-).transform((value) => (value ? value.toLowerCase() : null));
+const optionalEmail = z
+  .preprocess(
+    (value) =>
+      value === null || (typeof value === "string" && value.trim() === "")
+        ? undefined
+        : value,
+    z.string().trim().email("Email không hợp lệ").max(160).optional(),
+  )
+  .transform((value) => (value ? value.toLowerCase() : null));
 
 const optionalText = (max: number) =>
   z

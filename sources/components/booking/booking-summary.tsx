@@ -44,13 +44,15 @@ export function BookingSummary({
       }
     >
       <div className="relative aspect-[16/10] overflow-hidden rounded-[14px] bg-surface-warm">
-        <Image
-          src={tour.coverImage.src}
-          alt={tour.coverImage.alt}
-          fill
-          sizes="(min-width: 1024px) 30vw, 100vw"
-          className="object-cover"
-        />
+        {tour.coverImage ? (
+          <Image
+            src={tour.coverImage.src}
+            alt={tour.coverImage.alt}
+            fill
+            sizes="(min-width: 1024px) 30vw, 100vw"
+            className="object-cover"
+          />
+        ) : null}
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">

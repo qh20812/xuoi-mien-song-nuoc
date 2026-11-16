@@ -127,7 +127,7 @@ export default async function ExperienceDetailPage({
           />
         </div>
         <figcaption className="mt-3 text-xs leading-5 text-sage">
-          {post.coverImage.alt} (Ảnh: Wikimedia Commons)
+          {post.coverImage.alt} (Ảnh: Xuôi Miền Sông Nước)
         </figcaption>
       </figure>
 

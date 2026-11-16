@@ -9,7 +9,8 @@ export type BookingTourOption = {
   durationNights: number;
   priceAdult: number;
   priceChild: number;
-  coverImage: ImageAsset;
+  /** `null` khi tour trong DB chưa có ảnh bìa — UI hiển thị nền trung tính. */
+  coverImage: ImageAsset | null;
   departures: TourDepartureOption[];
 };
 
@@ -65,7 +66,8 @@ export type BookingSuccessData = {
   code: string;
   status: string;
   statusLabel: string;
-  holdExpiresAt: string;
+  /** `null` khi đơn không còn giữ chỗ (đã huỷ/hết hạn). */
+  holdExpiresAt: string | null;
   tourCode: string;
   tourName: string;
   tourSlug: string;

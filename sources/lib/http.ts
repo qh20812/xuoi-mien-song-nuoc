@@ -4,7 +4,7 @@
 import { createHash } from "node:crypto";
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
-import { BookingError, isBookingError } from "@/server/booking/errors";
+import { AppError, isAppError } from "@/server/errors";
 
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
@@ -51,12 +51,12 @@ export async function readJson(request: Request): Promise<unknown> {
   try {
     return await request.json();
   } catch {
-    throw new BookingError("INVALID_JSON", "Dữ liệu gửi lên không phải JSON hợp lệ", 400);
+    throw new AppError("INVALID_JSON", "Dữ liệu gửi lên không phải JSON hợp lệ", 400);
   }
 }
 
 export function handleApiError(error: unknown, context = "api"): Response {
-  if (isBookingError(error)) {
+  if (isAppError(error)) {
     return apiError(error.status, error.message, error.code, error.details);
   }
 
@@ -95,7 +95,7 @@ export function handleApiError(error: unknown, context = "api"): Response {
 export async function readJsonLimited(request: Request, maxBytes = 32_768): Promise<unknown> {
   const length = Number(request.headers.get("content-length") ?? 0);
   if (length > maxBytes) {
-    throw new BookingError("INVALID_INPUT", "Dữ liệu gửi lên quá lớn", 413);
+    throw new AppError("INVALID_INPUT", "Dữ liệu gửi lên quá lớn", 413);
   }
   return readJson(request);
 }

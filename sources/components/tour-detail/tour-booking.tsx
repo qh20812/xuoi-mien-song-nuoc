@@ -18,7 +18,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { calculateBookingPreview } from "@/lib/booking/preview";
 import type { SiteSettings } from "@/lib/contracts/site";
-import type { TourDetailData } from "@/lib/contracts/tour";
+import type { TourDepartureOption, TourDetailData } from "@/lib/contracts/tour";
 import {
   formatLongDateVN,
   formatVndDisplay,
@@ -33,6 +33,8 @@ type GuestCounts = {
 
 type TourBookingProps = {
   tour: TourDetailData;
+  /** Chuyến khởi hành thật đọc từ DB — `tour.departures` chỉ là dữ liệu fixture. */
+  departures: TourDepartureOption[];
   settings: SiteSettings;
   children: ReactNode;
 };
@@ -109,9 +111,14 @@ function GuestRow({
   );
 }
 
-export function TourBooking({ tour, settings, children }: TourBookingProps) {
+export function TourBooking({
+  tour,
+  departures,
+  settings,
+  children,
+}: TourBookingProps) {
   const [selectedDepartureId, setSelectedDepartureId] = useState(
-    tour.departures[0]?.id ?? 0,
+    departures[0]?.id ?? 0,
   );
   const [guestCounts, setGuestCounts] = useState<GuestCounts>({
     adults: 1,
@@ -122,10 +129,9 @@ export function TourBooking({ tour, settings, children }: TourBookingProps) {
 
   const selectedDeparture = useMemo(
     () =>
-      tour.departures.find(
-        (departure) => departure.id === selectedDepartureId,
-      ) ?? null,
-    [selectedDepartureId, tour.departures],
+      departures.find((departure) => departure.id === selectedDepartureId) ??
+      null,
+    [selectedDepartureId, departures],
   );
 
   const seatsRemaining = selectedDeparture?.seatsRemaining ?? 0;
@@ -238,8 +244,20 @@ export function TourBooking({ tour, settings, children }: TourBookingProps) {
         <legend className="mb-3 text-sm font-semibold text-ink">
           Chọn ngày khởi hành
         </legend>
+        {departures.length === 0 ? (
+          <p className="rounded-[10px] border border-line bg-surface-warm/60 p-4 text-sm leading-6 text-sage">
+            Tour này đang cập nhật lịch khởi hành. Vui lòng liên hệ{" "}
+            <a
+              href={settings.hotlineHref}
+              className="font-semibold text-clay underline-offset-2 hover:underline"
+            >
+              {settings.hotline}
+            </a>{" "}
+            để được xếp chuyến gần nhất.
+          </p>
+        ) : (
         <div className="flex flex-col gap-2">
-          {tour.departures.map((departure) => {
+          {departures.map((departure) => {
             const selected = departure.id === selectedDepartureId;
             const soldOut = departure.seatsRemaining <= 0;
 
@@ -310,6 +328,7 @@ export function TourBooking({ tour, settings, children }: TourBookingProps) {
             );
           })}
         </div>
+        )}
       </fieldset>
 
       <fieldset className="border-b border-line py-4">

@@ -1,6 +1,11 @@
 /**
- * Lỗi nghiệp vụ có mã và HTTP status để route handler trả về thống nhất.
+ * Lỗi nghiệp vụ của domain booking.
+ *
+ * Kế thừa `AppError` để `lib/http.ts` xử lý thống nhất với các domain khác,
+ * đồng thời giữ `code` là union hẹp để nơi gọi switch an toàn.
  */
+import { AppError } from "@/server/errors";
+
 export type BookingErrorCode =
   | "INVALID_INPUT"
   | "INVALID_JSON"
@@ -21,17 +26,11 @@ export type BookingErrorCode =
   | "CONFLICT"
   | "INTERNAL";
 
-export class BookingError extends Error {
-  readonly code: BookingErrorCode;
-  readonly status: number;
-  readonly details?: unknown;
+export class BookingError extends AppError {
+  declare readonly code: BookingErrorCode;
 
   constructor(code: BookingErrorCode, message: string, status = 400, details?: unknown) {
-    super(message);
-    this.name = "BookingError";
-    this.code = code;
-    this.status = status;
-    this.details = details;
+    super(code, message, status, details);
   }
 }
 

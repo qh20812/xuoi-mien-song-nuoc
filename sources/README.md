@@ -4,9 +4,10 @@ Website đặt tour **Sài Gòn – U Minh Hạ – Đất Mũi Cà Mau**: khác
 (không thanh toán online), tra cứu/huỷ đơn, xem tour – bài viết – FAQ – liên hệ; kèm
 khu quản trị tối giản để xử lý đơn.
 
-> Trạng thái: backend + mini admin đã hoàn chỉnh, build production và test đều pass.
-> Giao diện phía khách (trang chủ, chi tiết tour, form đặt tour) sẽ được ghép vào các
-> API đã có.
+> Trạng thái: storefront, form đặt giữ chỗ, tra cứu/huỷ đơn, form liên hệ và mini admin
+> đều đã nối backend thật (MySQL). Không còn adapter mock nào ở phía khách.
+> Nội dung marketing (tour, bài viết, điểm đến, ẩm thực, FAQ) vẫn đọc từ
+> `lib/fixtures/` — cố ý, để trang public giữ nguyên khả năng prerender.
 
 ## Công nghệ
 
@@ -38,23 +39,40 @@ khu quản trị tối giản để xử lý đơn.
 - Thao tác: `pending` (đã liên hệ) → `confirm` (xác nhận, bỏ hạn giữ chỗ) →
   `complete`; huỷ đơn (admin được phép huỷ cả khi quá hạn).
 - Mọi thao tác ghi `order_status_history` + `admin_audit_logs`.
+- Giao diện theo `DESIGN-ADMIN.md`: sidebar 248px + drawer mobile, chip trạng thái theo token
+  dự án; danh sách đơn có bảng ở `≥768` và card ở mobile; chi tiết đơn chỉ hiện hành động hợp
+  lệ với trạng thái, huỷ bắt buộc nhập lý do.
 
 ## Cấu trúc chính
 
 ```
 app/
+  (site)/                storefront: tour, điểm đến, ẩm thực, kinh nghiệm, đặt tour…
   api/orders/…           đặt chỗ, tra cứu, huỷ (public)
+  api/contact/           nhận lời nhắn liên hệ (public)
   api/admin/…            login/logout/me, danh sách & cập nhật đơn
   admin/login/           trang đăng nhập
   admin/(dashboard)/     dashboard, danh sách đơn, chi tiết đơn + server actions
+components/
+  admin/                 shell, sidebar, drawer, page header, chip trạng thái, order actions
 lib/
+  api/client.ts          fetch wrapper dùng chung (inject được baseUrl/fetchImpl)
   auth/                  JWT cookie, session, sanitize `next`
-  validation/order.ts    schema đầu vào public API
-  settings.ts            cấu hình đặt tour (đọc bảng settings)
+  booking/               submit / success / preview / validation (phía client)
+  booking/status-labels.ts  nhãn 6 trạng thái, dùng chung admin + API
+  orders/client.ts       adapter tra cứu & huỷ đơn gọi API thật
+  contact/client.ts      adapter gửi lời nhắn liên hệ
+  fixtures/              nội dung marketing tĩnh cho trang public
+  validation/            schema zod đầu vào API (order, contact)
+  settings.ts            type + mặc định + hàm chuẩn hoá (thuần, không Prisma)
   time.ts                ngày/giờ theo múi giờ VN
   rate-limit.ts          rate limit trong bộ nhớ
 server/
+  errors.ts              AppError dùng chung cho mọi domain
   booking/               create / lookup / cancel / admin update + DTO
+  catalog/               tour & chuyến khởi hành công khai (đọc từ MySQL)
+  contact/               ghi contact_messages
+  settings/              đọc bảng settings + ghép cấu hình site
   auth/authenticate.ts   xác thực admin dùng chung
 prisma/
   schema.prisma          schema (22 model)
@@ -163,6 +181,7 @@ npm run db:verify:test
 | `POST` | `/api/orders` | Giữ chỗ. Rate limit 5 req / 10 phút / IP |
 | `POST` | `/api/orders/lookup` | `{ code, phone }`. Lỗi chung khi không khớp. 15 req / 10 phút |
 | `POST` | `/api/orders/cancel` | `{ code, phone, reason? }`. Chỉ khi còn ≥ 3 ngày |
+| `POST` | `/api/contact` | `{ name, phone, email, subject, message }` → ghi `contact_messages`. 3 req / 10 phút / IP |
 
 `POST /api/orders` nhận:
 

@@ -155,18 +155,22 @@ export function BookingSuccess({
               </span>
             </div>
 
-            <div className="mt-5 flex items-start gap-3 rounded-[12px] border border-line bg-canvas p-4">
-              <Clock3 aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-warning" />
-              <div>
-                <span className="block text-sm font-semibold text-ink">
-                  Thời hạn giữ chỗ đến {formatDateTimeLongVN(success.holdExpiresAt)}
-                </span>
-                <p className="mt-1 text-sm leading-6 text-sage">
-                  Còn lại <HoldCountdown holdExpiresAt={success.holdExpiresAt} /> để
-                  nhân viên liên hệ và hướng dẫn bước tiếp theo.
-                </p>
+            {success.holdExpiresAt ? (
+              <div className="mt-5 flex items-start gap-3 rounded-[12px] border border-line bg-canvas p-4">
+                <Clock3 aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-warning" />
+                <div>
+                  <span className="block text-sm font-semibold text-ink">
+                    Thời hạn giữ chỗ đến{" "}
+                    {formatDateTimeLongVN(success.holdExpiresAt)}
+                  </span>
+                  <p className="mt-1 text-sm leading-6 text-sage">
+                    Còn lại{" "}
+                    <HoldCountdown holdExpiresAt={success.holdExpiresAt} /> để
+                    nhân viên liên hệ và hướng dẫn bước tiếp theo.
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : null}
           </section>
 
           <section className="rounded-[20px] border border-line bg-surface p-5 md:p-7">

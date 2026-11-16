@@ -26,24 +26,31 @@ const prisma = new PrismaClient({ log: ["warn", "error"] });
 // Ảnh thật từ Wikimedia Commons
 // ---------------------------------------------------------------------------
 const IMG = {
-  vinhTrang:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/Ch%C3%B9a_V%C4%A9nh_Tr%C3%A0ng_%E1%BB%9F_M%E1%BB%B9_Tho.jpg/1920px-Ch%C3%B9a_V%C4%A9nh_Tr%C3%A0ng_%E1%BB%9F_M%E1%BB%B9_Tho.jpg",
-  thoiSon:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/T%C3%A0u_du_l%E1%BB%8Bch_gh%C3%A9_c%E1%BB%93n_L%C3%A2n.jpg/1920px-T%C3%A0u_du_l%E1%BB%8Bch_gh%C3%A9_c%E1%BB%93n_L%C3%A2n.jpg",
-  caiRang:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/M%E1%BB%99t_c%E1%BA%A3nh_%E1%BB%9F_ch%E1%BB%A3_n%E1%BB%95i_C%C3%A1i_R%C4%83ng.jpg/1920px-M%E1%BB%99t_c%E1%BA%A3nh_%E1%BB%9F_ch%E1%BB%A3_n%E1%BB%95i_C%C3%A1i_R%C4%83ng.jpg",
-  binhThuy:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Nh%C3%A0_c%E1%BB%95_B%C3%ACnh_Th%E1%BB%A7y_1.jpg/1920px-Nh%C3%A0_c%E1%BB%95_B%C3%ACnh_Th%E1%BB%A7y_1.jpg",
-  chuaDoi:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Ch%C3%B9a_D%C6%A1i_%2845715215502%29.jpg/1920px-Ch%C3%B9a_D%C6%A1i_%2845715215502%29.jpg",
-  congTu:
-    "https://upload.wikimedia.org/wikipedia/commons/0/02/Nh%C3%A0_C%C3%B4ng_t%E1%BB%AD_B%E1%BA%A1c_Li%C3%AAu.jpg",
-  dienGio:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/B%E1%BA%A1c_Li%C3%AAu_windpower_farm.jpg/1920px-B%E1%BA%A1c_Li%C3%AAu_windpower_farm.jpg",
-  uMinh:
-    "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Chu%E1%BB%91i_t%E1%BA%A1i_r%E1%BB%ABng_U_Minh_h%E1%BA%A1.jpg/1920px-Chu%E1%BB%91i_t%E1%BA%A1i_r%E1%BB%ABng_U_Minh_h%E1%BA%A1.jpg",
-  muiCaMau:
-    "https://upload.wikimedia.org/wikipedia/commons/7/7b/Tuongdaimuicamau.jpg",
+  // Ảnh điểm đến tải từ Wikimedia Commons (nguồn & giấy phép: public/images/CREDITS.md)
+  vinhTrang: "/images/chua-vinh-trang.webp",
+  thoiSon: "/images/cu-lao-thoi-son.webp",
+  caiRang: "/images/cho-noi-cai-rang.webp",
+  binhThuy: "/images/nha-co-binh-thuy.webp",
+  chuaDoi: "/images/chua-doi-soc-trang.webp",
+  congTu: "/images/nha-cong-tu-bac-lieu.webp",
+  dienGio: "/images/canh-dong-dien-gio-bac-lieu.webp",
+  tacSay: "/images/nha-tho-tac-say.webp",
+  // Ảnh chụp trong chuyến Cà Mau – Đất Mũi
+  uMinh: "/images/65-mui-ghe-dtc-kenh-rung-tram.webp",
+  muiCaMau: "/images/50-cot-moc-mui-ca-mau-co-do.webp",
+  cotCo: "/images/69-tuong-cua-bien-ca-mau.webp",
+  gacKeo: "/images/66-dan-ong-mat-tren-gian-tre.webp",
+  gheRungDuoc: "/images/71-khach-tren-ghe-may-rung-duoc.webp",
+  loiKenh: "/images/79-nhom-tre-ngam-minh-duoi-kenh.webp",
+  hoangHon: "/images/47-du-khach-ghe-may-hoang-hon.webp",
+  tuongMe: "/images/51-tuong-dai-me-mui-ca-mau.webp",
+  kenhNho: "/images/58-kenh-nho-in-bong-cay.webp",
+  ongCanh: "/images/55-dan-ong-mat-bu-tren-canh.webp",
+  nhaSan: "/images/62-xuong-go-ben-nha-san-beo.webp",
+  gheHang: "/images/21-ghe-cho-hang-tren-kenh-2.webp",
+  xuongMay: "/images/23-xuong-may-tren-kenh-phu-sa.webp",
+  kenhBeo: "/images/63-mui-ghe-dtc-kenh-beo.webp",
+  rungTram: "/images/36-nguoi-dan-luoi-trong-rung-tram.webp",
 };
 
 const gallery = (items) => items.map(([url, alt]) => ({ url, alt }));
@@ -233,7 +240,7 @@ const DESTINATIONS = [
     lat: 8.6075,
     lng: 104.7208,
     travelNote: "Nằm trong cùng khuôn viên với mốc toạ độ Đất Mũi, đi bộ hoặc xe điện từ cổng.",
-    coverImageUrl: IMG.muiCaMau,
+    coverImageUrl: IMG.cotCo,
     sortOrder: 10,
   },
   {
@@ -249,7 +256,7 @@ const DESTINATIONS = [
     lat: null,
     lng: null,
     travelNote: "Nằm trên QL1A, cách TP Bạc Liêu khoảng 40 km; thuận tiện dừng trên đường Sóc Trăng – Cà Mau.",
-    coverImageUrl: null,
+    coverImageUrl: IMG.tacSay,
     sortOrder: 11,
   },
 ];
@@ -452,12 +459,12 @@ const TOURS = [
       "Huỷ miễn phí trước 3 ngày khởi hành. Sát ngày hơn, vui lòng liên hệ hotline để được hỗ trợ. Trường hợp bất khả kháng (thiên tai, dịch bệnh, lệnh cấm đi lại) được bảo lưu hoặc hoàn theo thoả thuận.",
     packingNotes:
       "Giày bám tốt hoặc dép quai hậu, áo chống nắng, mũ rộng vành, kem chống muỗi, thuốc say sóng, pin dự phòng. Nên mang áo mưa mỏng vì miền Tây mưa rào bất chợt.",
-    coverImageUrl: IMG.uMinh,
+    coverImageUrl: IMG.xuongMay,
     gallery: gallery([
-      [IMG.caiRang, "Chợ nổi Cái Răng"],
-      [IMG.uMinh, "Rừng tràm U Minh Hạ"],
-      [IMG.muiCaMau, "Mũi Cà Mau"],
-      [IMG.congTu, "Nhà công tử Bạc Liêu"],
+      [IMG.muiCaMau, "Cột mốc Mũi Cà Mau"],
+      [IMG.gacKeo, "Giàn ong gác kèo trong rừng tràm"],
+      [IMG.gheRungDuoc, "Đoàn khách trên ghe máy giữa rừng đước"],
+      [IMG.loiKenh, "Ngâm mình dưới kênh rừng đước"],
     ]),
     seoTitle: "Tour Sài Gòn – Cần Thơ – U Minh Hạ – Đất Mũi 4N3Đ",
     seoDescription:
@@ -603,11 +610,11 @@ const TOURS = [
       "Huỷ miễn phí trước 3 ngày khởi hành. Sát ngày hơn, vui lòng liên hệ hotline để được hỗ trợ.",
     packingNotes:
       "Áo chống nắng, mũ, kem chống muỗi, thuốc say sóng, giày bám tốt. Mang theo áo mưa mỏng.",
-    coverImageUrl: IMG.caiRang,
+    coverImageUrl: IMG.gheHang,
     gallery: gallery([
-      [IMG.caiRang, "Chợ nổi Cái Răng"],
-      [IMG.chuaDoi, "Chùa Dơi Sóc Trăng"],
-      [IMG.muiCaMau, "Mũi Cà Mau"],
+      [IMG.tuongMe, "Tượng đài Mẹ tại Mũi Cà Mau"],
+      [IMG.hoangHon, "Đoàn khách trên ghe máy lúc hoàng hôn"],
+      [IMG.cotCo, "Tượng cua biển và cột cờ Mũi Cà Mau"],
     ]),
     seoTitle: "Tour Sài Gòn – Cần Thơ – Đất Mũi 3N2Đ",
     seoDescription:
@@ -681,10 +688,10 @@ const TOURS = [
       "Huỷ miễn phí trước 3 ngày khởi hành. Sát ngày hơn, vui lòng liên hệ hotline để được hỗ trợ.",
     packingNotes:
       "Quần áo dài tay, kem chống muỗi, đèn pin, dép quai hậu, thuốc dị ứng. Rừng tràm ẩm và nhiều muỗi vào chiều tối.",
-    coverImageUrl: IMG.uMinh,
+    coverImageUrl: IMG.nhaSan,
     gallery: gallery([
-      [IMG.uMinh, "Rừng tràm U Minh Hạ"],
-      [IMG.muiCaMau, "Rừng đước Cà Mau"],
+      [IMG.kenhNho, "Kênh nhỏ in bóng cây"],
+      [IMG.ongCanh, "Đàn ong mật bám trên cành"],
     ]),
     seoTitle: "Tour trải nghiệm U Minh Hạ 2N1Đ",
     seoDescription:
@@ -739,7 +746,7 @@ const POSTS = [
 Một lưu ý thực tế: rừng tràm rất ẩm và nhiều muỗi vào chiều tối. Bất kể mùa nào, kem chống muỗi và quần áo dài tay là thứ không thể thiếu.`,
     category: "kinh-nghiem",
     tags: ["u-minh-ha", "mua-nao", "sinh-thai"],
-    coverImageUrl: IMG.uMinh,
+    coverImageUrl: IMG.kenhBeo,
     publishedAt: new Date("2026-09-15T08:00:00Z"),
   },
   {
@@ -762,7 +769,7 @@ Một lưu ý thực tế: rừng tràm rất ẩm và nhiều muỗi vào chi�
 Cuối cùng: mang theo tiền mặt. Nhiều homestay và quán nhỏ trong vùng không quét thẻ.`,
     category: "kinh-nghiem",
     tags: ["u-minh-ha", "hanh-ly", "an-toan"],
-    coverImageUrl: IMG.uMinh,
+    coverImageUrl: IMG.rungTram,
     publishedAt: new Date("2026-09-28T08:00:00Z"),
   },
   {
@@ -781,7 +788,7 @@ Cuối cùng: mang theo tiền mặt. Nhiều homestay và quán nhỏ trong vù
 **Lưu ý.** Nắng và gió biển mạnh, không có nhiều bóng râm. Mang nước, mũ, kem chống nắng. Cuối tuần đông hơn ngày thường, nên đi sớm để tránh xếp hàng mua vé.`,
     category: "kinh-nghiem",
     tags: ["dat-mui", "ca-mau", "mot-ngay"],
-    coverImageUrl: IMG.muiCaMau,
+    coverImageUrl: IMG.tuongMe,
     publishedAt: new Date("2026-10-10T08:00:00Z"),
   },
 ];
@@ -854,7 +861,7 @@ const FAQS = [
 const MEDIA = [
   { url: IMG.caiRang, title: "Chợ nổi Cái Răng", alt: "Ghe thuyền bán trái cây trên chợ nổi Cái Răng", tags: ["cho-noi", "can-tho"], sortOrder: 1 },
   { url: IMG.uMinh, title: "Rừng tràm U Minh Hạ", alt: "Kênh tràm trong Vườn quốc gia U Minh Hạ", tags: ["u-minh-ha", "rung"], sortOrder: 2 },
-  { url: IMG.muiCaMau, title: "Mũi Cà Mau", alt: "Tượng đài và mốc toạ độ tại Mũi Cà Mau", tags: ["dat-mui", "ca-mau"], sortOrder: 3 },
+  { url: IMG.muiCaMau, title: "Mũi Cà Mau", alt: "Cột mốc Mũi Cà Mau với cờ đỏ sao vàng", tags: ["dat-mui", "ca-mau"], sortOrder: 3 },
   { url: IMG.vinhTrang, title: "Chùa Vĩnh Tràng", alt: "Chùa Vĩnh Tràng ở Mỹ Tho", tags: ["my-tho", "chua"], sortOrder: 4 },
   { url: IMG.thoiSon, title: "Cù lao Thới Sơn", alt: "Tàu du lịch ghé cồn Lân", tags: ["my-tho", "cu-lao"], sortOrder: 5 },
   { url: IMG.binhThuy, title: "Nhà cổ Bình Thủy", alt: "Nhà cổ Bình Thủy ở Cần Thơ", tags: ["can-tho", "kien-truc"], sortOrder: 6 },
@@ -887,7 +894,7 @@ const SETTINGS = {
     defaultTitle: "Xuôi Miền Sông Nước – Tour miền Tây, U Minh Hạ, Đất Mũi",
     defaultDescription:
       "Tour miền Tây từ Sài Gòn: chợ nổi Cái Răng, rừng tràm U Minh Hạ, mốc toạ độ Đất Mũi. Đặt giữ chỗ online, xác nhận qua điện thoại/Zalo.",
-    ogImage: IMG.muiCaMau,
+    ogImage: IMG.hoangHon,
   },
   booking: {
     minDaysAhead: 3,

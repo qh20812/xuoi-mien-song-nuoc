@@ -6,16 +6,11 @@
  *
  * Yêu cầu: TEST_DATABASE_URL trong .env, đã migrate + seed DB test.
  */
+import "./helpers/env";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
 import bcrypt from "bcryptjs";
-
-process.loadEnvFile(".env");
-if (!process.env.TEST_DATABASE_URL) throw new Error("Thiếu TEST_DATABASE_URL trong .env");
-process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
-process.env.AUTH_SECRET = "test-auth-secret-at-least-32-characters-long";
-process.env.IP_HASH_SALT ??= "test-ip-salt";
 
 const { default: prisma } = await import("@/lib/prisma");
 const { createOrder } = await import("@/server/booking/create-order");

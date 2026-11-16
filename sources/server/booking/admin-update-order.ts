@@ -7,7 +7,7 @@
 import type { OrderStatus } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
-import { getBookingSettings } from "@/lib/settings";
+import { getBookingSettings } from "@/server/settings/get-booking-settings";
 import { toAdminOrderDto, type AdminOrderForDto } from "@/server/booking/admin-dto";
 import { cancelOrderAsAdmin } from "@/server/booking/cancel-order";
 import { BookingError } from "@/server/booking/errors";

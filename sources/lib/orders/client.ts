@@ -1,14 +1,19 @@
-import { normalizePhone } from "@/lib/booking/validation";
+/**
+ * Adapter tra cứu / huỷ đơn của khách.
+ *
+ * Trước đây trả dữ liệu giả từ `lib/fixtures/order.ts`; nay gọi API thật:
+ *   POST /api/orders/lookup  { code, phone }
+ *   POST /api/orders/cancel  { code, phone, reason? }
+ *
+ * `OrderApiError` giữ nguyên shape cũ để `components/lookup/order-lookup.tsx`
+ * không phải sửa.
+ */
+import { apiRequest, isApiError } from "@/lib/api/client";
 import type {
   OrderCancelInput,
   OrderLookupInput,
   PublicOrder,
 } from "@/lib/contracts/order";
-import {
-  createMockOrder,
-  mockOrderCredentials,
-  setMockCancelled,
-} from "@/lib/fixtures/order";
 
 export class OrderApiError extends Error {
   status: number;
@@ -22,62 +27,39 @@ export class OrderApiError extends Error {
   }
 }
 
-function wait(milliseconds: number) {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+type OrderResponse = { ok: true; order: PublicOrder };
+
+function rethrowAsOrderApiError(error: unknown): never {
+  if (isApiError(error)) {
+    throw new OrderApiError(error.message, error.status, error.code);
+  }
+  throw error;
 }
 
-function matchesMockOrder(input: OrderLookupInput) {
-  const expected = mockOrderCredentials();
-  return (
-    input.code.trim().toUpperCase() === expected.code &&
-    normalizePhone(input.phone) === expected.phone
-  );
+export async function lookupOrder(
+  input: OrderLookupInput,
+): Promise<PublicOrder> {
+  try {
+    const payload = await apiRequest<OrderResponse>("/api/orders/lookup", {
+      method: "POST",
+      body: input,
+    });
+    return payload.order;
+  } catch (error) {
+    return rethrowAsOrderApiError(error);
+  }
 }
 
-/**
- * Adapter frontend-first. Khi nối backend, thay phần thân bằng POST /api/orders/lookup.
- */
-export async function lookupOrder(input: OrderLookupInput): Promise<PublicOrder> {
-  await wait(500);
-
-  if (!matchesMockOrder(input)) {
-    throw new OrderApiError(
-      "Không tìm thấy đơn phù hợp với mã đơn và số điện thoại đã nhập.",
-      404,
-      "ORDER_NOT_FOUND",
-    );
+export async function cancelOrder(
+  input: OrderCancelInput,
+): Promise<PublicOrder> {
+  try {
+    const payload = await apiRequest<OrderResponse>("/api/orders/cancel", {
+      method: "POST",
+      body: input,
+    });
+    return payload.order;
+  } catch (error) {
+    return rethrowAsOrderApiError(error);
   }
-
-  return createMockOrder();
-}
-
-/**
- * Adapter frontend-first. Khi nối backend, thay phần thân bằng POST /api/orders/cancel.
- */
-export async function cancelOrder(input: OrderCancelInput): Promise<PublicOrder> {
-  await wait(600);
-
-  if (!matchesMockOrder(input)) {
-    throw new OrderApiError(
-      "Không tìm thấy đơn phù hợp với mã đơn và số điện thoại đã nhập.",
-      404,
-      "ORDER_NOT_FOUND",
-    );
-  }
-
-  const current = createMockOrder();
-  if (current.status === "cancelled") {
-    return { ...current, alreadyCancelled: true };
-  }
-
-  if (!current.cancellation.canCancel) {
-    throw new OrderApiError(
-      "Đã quá hạn tự huỷ. Vui lòng liên hệ hotline để được hỗ trợ.",
-      409,
-      "CANCEL_TOO_LATE",
-    );
-  }
-
-  setMockCancelled(true);
-  return createMockOrder();
 }

@@ -5,31 +5,19 @@
  */
 import type { Prisma } from "@prisma/client";
 import type { BookingSettings } from "@/lib/settings";
+import { statusLabel } from "@/lib/booking/status-labels";
+import { maskPhone } from "@/lib/format";
 import { cancelDeadline, dateOnly, daysUntilDeparture, isoOrNull } from "@/lib/time";
 
 export type OrderForDto = Prisma.OrderGetPayload<{
   include: { tour: true; departure: true; passengers: true };
 }>;
 
-const STATUS_LABELS: Record<string, string> = {
-  new: "Chờ xác nhận",
-  pending: "Đang liên hệ",
-  confirmed: "Đã xác nhận",
-  completed: "Đã hoàn thành",
-  cancelled: "Đã huỷ",
-  expired: "Hết hạn giữ chỗ",
-};
-
 const PASSENGER_LABELS: Record<string, string> = {
   adult: "Người lớn",
   child: "Trẻ em",
   infant: "Em bé",
 };
-
-export function maskPhone(phone: string): string {
-  if (phone.length < 8) return "***";
-  return `${phone.slice(0, 4)}***${phone.slice(-3)}`;
-}
 
 export function orderSeats(order: {
   adults: number;
@@ -59,7 +47,7 @@ export function toOrderDto(
   return {
     code: order.code,
     status: order.status,
-    statusLabel: STATUS_LABELS[order.status] ?? order.status,
+    statusLabel: statusLabel(order.status),
     contactName: order.contactName,
     phoneMasked: maskPhone(order.phone),
     email: order.email,
@@ -72,7 +60,7 @@ export function toOrderDto(
       seats,
     },
     pricing: {
-      currency: "VND",
+      currency: "VND" as const,
       unitPriceAdult: order.unitPriceAdult,
       unitPriceChild: order.unitPriceChild,
       surcharge: order.surcharge,

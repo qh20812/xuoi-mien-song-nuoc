@@ -5,7 +5,7 @@
  */
 import { timingSafeEqual } from "node:crypto";
 import prisma from "@/lib/prisma";
-import { getBookingSettings } from "@/lib/settings";
+import { getBookingSettings } from "@/server/settings/get-booking-settings";
 import { lookupOrderSchema } from "@/lib/validation/order";
 import { ORDER_INCLUDE, toOrderDto, type OrderDto } from "@/server/booking/dto";
 import { BookingError } from "@/server/booking/errors";

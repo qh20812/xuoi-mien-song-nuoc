@@ -73,10 +73,10 @@ export function HeroSection({ image }: HeroSectionProps) {
             <ShieldCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-clay" />
             <span className="text-sm leading-6 text-sage">
               <span className="block text-xs font-semibold tracking-[0.12em] text-ink uppercase">
-                Rừng tràm U Minh Hạ
+                Rừng đước Năm Căn
               </span>
-              Màu xanh của vườn chuối và tán rừng tràm trong vùng đất ngập nước
-              U Minh Hạ.
+              Kênh rừng đước ở Đất Mũi, nơi con nước lớn gặp bãi bồi cuối trời
+              phương Nam.
             </span>
           </figcaption>
         </figure>
