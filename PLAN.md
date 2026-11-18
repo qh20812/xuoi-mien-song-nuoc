@@ -627,6 +627,20 @@ B0 ──▶ B1 ──▶ B2 ──▶ B3
 - [x] **A7** 404 admin — trong shell, bỏ thuật ngữ bịa
 - [x] **A8** A11y + responsive + test/coverage
 
+### Track D — Admin backend → chi tiết ở §10
+
+- [x] **D0** Ảnh local + bỏ `remotePatterns` (prerequisite)
+- [x] **D1** CRUD chuyến khởi hành
+- [x] **D2** Cấu hình đặt tour (+ sửa lỗi mất `cancellationPolicy`)
+- [x] **D3** Hộp thư liên hệ + tài khoản quản trị
+- [x] **D4** Nội dung tour + thư viện media
+- [x] **D5** Kiểm duyệt đánh giá + xuất CSV đơn
+- [ ] **D6** Phân quyền theo vai trò (owner / admin / editor) — **ưu tiên 1**
+- [ ] **D7** Ghi chú nội bộ + phân công đơn (cần migration)
+- [ ] **D8** Kênh khách gửi đánh giá
+- [ ] **D9** Public đọc DB + CRUD điểm đến/bài viết/món ăn/FAQ
+- [ ] **D10** Upload ảnh, màn audit log, badge tin mới
+
 ### Điều kiện chặn
 
 - [x] DB dev dùng cho smoke test (`DEV_DATABASE_URL` + `scripts/with-db.mjs dev`)
@@ -1006,3 +1020,394 @@ A3..A7 ──▶ A8
 
 **Thứ tự thực thi: A0 → A1 → A2 → A3/A4/A5/A6/A7 → A8.**
 Không gộp 2 phase vào một lần build; mỗi phase phải qua cổng `tsc + lint + build` trước khi sang phase kế.
+
+---
+
+## 10. TRACK D — Admin backend vận hành & nội dung
+
+> Track này được thêm **sau khi A8 xong**, khi yêu cầu chuyển từ "giao diện admin" sang
+> "vận hành thật": mở bán chuyến, sửa giá, đọc hộp thư, quản lý tài khoản.
+> Đường dẫn tính từ `sources/`.
+
+### 10.0 Bối cảnh
+
+Admin hiện có **8 mục menu**, tất cả đều là server component gọi server action → service →
+Prisma. Không có màn nào tự query DB, không có màn nào dùng dữ liệu mẫu.
+
+| Domain | Route | Service | Audit | Test |
+|---|---|---|---|---|
+| Đơn hàng | `/admin/orders`, `/admin/orders/[id]` | `server/booking/admin-queries.ts`, `admin-update-order.ts` | ✅ | ✅ |
+| Xuất CSV | `/api/admin/orders/export` | `listAdminOrdersForExport` + `lib/csv.ts` | — | ✅ |
+| Chuyến khởi hành | `/admin/tours/[slug]/departures` | `server/catalog/admin-departures.ts` | ✅ | ✅ |
+| Nội dung tour | `/admin/tours/[slug]` | `server/catalog/admin-tours.ts` | ✅ | ✅ |
+| Hộp thư | `/admin/messages` | `server/contact/admin-messages.ts` | ✅ | ✅ |
+| Thư viện ảnh | `/admin/media` | `server/media/admin-media.ts` | ✅ | ✅ |
+| Đánh giá | `/admin/reviews` | `server/reviews/admin-reviews.ts` | ✅ | ✅ |
+| Cấu hình booking | `/admin/settings` | `server/settings/update-booking-settings.ts` | ✅ | ✅ |
+| Tài khoản | `/admin/users` (owner) | `server/auth/admin-users.ts` | ✅ | ✅ |
+
+Ranh giới layer giữ nguyên: **0 file trong `app/` import `@/lib/prisma`** (kiểm bằng script),
+mọi page/action đều có `requireAdminPage` (trừ login/logout), mọi API admin đều có
+`requireAdminApi` (trừ login/logout).
+
+**Đo tại thời điểm viết plan:**
+
+```
+npx tsc --noEmit            → 0 lỗi
+npm run lint                → 0 error, 0 warning
+npm run build               → 50 route
+npm test                    → 144/144
+npm run test:coverage       → exit 0 (all files ≈ 81.2 / 88.3 / 92.8; gate 72 / 88 / 92)
+```
+
+**Không có API admin cho** departures / tours / media / reviews / settings / users — các
+domain này chỉ có server action. Đủ cho UI hiện tại; nếu cần tích hợp ngoài (app mobile,
+đối tác) thì phải bổ sung route handler theo cùng mẫu `requireAdminApi` + `handleApiError`.
+
+---
+
+### D0 · Ảnh local + bỏ `remotePatterns` — **đã xong**
+
+| | |
+|---|---|
+| **Mục tiêu** | Không còn phụ thuộc ảnh internet; `next/image` không còn host ngoài |
+| **Tạo mới** | `lib/images.ts` (`toLocalImage`) · `public/images/CREDITS.md` · `sources/assets/images-originals/` (81 JPG gốc, ngoài `public/`) |
+| **Sửa** | `next.config.ts` (xoá `images.remotePatterns`) · `lib/fixtures/{home-media,home,destinations,posts,tour-details}.ts` · `prisma/seed.mjs` · `components/home/hero-section.tsx` (caption) · `app/(site)/kinh-nghiem/[slug]/page.tsx` (dòng credit) |
+| **Bẫy** | Ảnh DB cũ vẫn là URL Wikimedia → **runtime error** `hostname not configured`. `next/image` ném ngay khi render, không phải lúc build |
+| **Done khi** | `grep wikimedia` trong `sources/` = 0 (ngoài CREDITS.md) · mọi trang 200 · `/dat-tour` không lỗi |
+
+> **Đã làm & kiểm chứng**
+>
+> - 81 JPG chuyến đi → WebP q78, cạnh dài ≤1920: **119.1 MB → 18.3 MB**; bản gốc chuyển ra
+>   `sources/assets/images-originals/` (không bị serve).
+> - 8 ảnh điểm đến tải từ Wikimedia Commons (thumb 1920), ghi rõ tác giả + giấy phép +
+>   link gốc trong `public/images/CREDITS.md`. 2 ảnh dùng license đơn giản nhất:
+>   Chùa Vĩnh Tràng (**CC0**) và Nhà cổ Bình Thủy (**Public domain**).
+> - `lib/images.ts#toLocalImage(src, alt)`: chỉ nhận `/images/*.(webp|jpg|png|avif)`, còn lại
+>   trả `null`. Dùng ở `server/catalog/list-bookable-tours.ts` và `lib/booking/success.ts` —
+>   nhờ vậy dữ liệu cũ trong DB **không làm sập trang** mà chỉ mất ảnh.
+> - `npm run db:seed` đã chạy lại trên DB production: 3 tour, 11 điểm đến, 3 bài viết,
+>   9 media đều trỏ `/images/*.webp`.
+> - Sự cố gặp thật: sau khi xoá `remotePatterns`, `/dat-tour` ném
+>   `Invalid src prop … hostname "thumb.wikimedia.org" is not configured`. Fix 2 lớp:
+>   seed lại dữ liệu + `toLocalImage` chặn URL ngoài.
+> - Sự cố thứ hai: `/admin/login` ném `Blocking Route … unstable value new Date()` vì
+>   `cacheComponents`. Fix bằng `async function getCopyrightYear() { "use cache"; … }`,
+>   cùng khuôn với `components/site/site-footer.tsx`.
+
+---
+
+### D1 · CRUD chuyến khởi hành — **đã xong**
+
+| | |
+|---|---|
+| **Mục tiêu** | Mở bán/đóng/huỷ chuyến, sửa số chỗ và giá **không cần seed** |
+| **Tạo mới** | `server/catalog/admin-departures.ts` · `app/admin/(dashboard)/tours/page.tsx` · `app/admin/(dashboard)/tours/[slug]/departures/{page.tsx,actions.ts}` |
+| **Sửa** | `components/admin/admin-nav-links.tsx` (thêm mục) |
+| **Bẫy** | `@@unique([tourId, departureDate])` → phải pre-check + bắt `P2002`; hạ `capacityTotal` dưới `seatsTaken` sẽ làm âm chỗ trống; xoá chuyến đã có đơn sẽ mất dữ liệu |
+| **Done khi** | Tạo chuyến mới → hiện ngay trên `/dat-tour` · trùng ngày báo lỗi thân thiện · không hạ chỗ dưới mức đã bán · không xoá được chuyến có đơn |
+
+**Bất biến đã cài trong service:**
+
+| Bất biến | Mã lỗi | HTTP |
+|---|---|---|
+| Một tour chỉ 1 chuyến/ngày | `DEPARTURE_EXISTS` | 409 |
+| `capacityTotal >= seatsTaken` | `CAPACITY_BELOW_TAKEN` | 409 |
+| Không xoá chuyến đã có đơn | `DEPARTURE_HAS_ORDERS` | 409 |
+| `returnDate >= departureDate` | `INVALID_DATE_RANGE` | 400 |
+| Ngày/giá/số chỗ hợp lệ | `INVALID_DATE` / `INVALID_PRICE` / `INVALID_CAPACITY` | 400 |
+
+> **Đã làm & kiểm chứng**
+>
+> - `listAdminTours()`, `getAdminTourDepartures(slug)`, `createDeparture(tourSlug, input, adminId)`,
+>   `updateDeparture`, `setDepartureStatus`, `deleteDeparture`; mọi mutation ghi
+>   `admin_audit_log` trong **cùng transaction**.
+> - UI: bảng chuyến có chỗ đã bán/còn lại, nhãn "đã qua", nút Mở bán/Đóng/Huỷ, nút Xoá chỉ
+>   hiện khi `orderCount === 0`, form sửa gập trong `<details>` (không cần JS).
+> - Pre-check trùng ngày **trước** khi insert để không in `prisma:error` rác ra log; vẫn giữ
+>   nhánh bắt `P2002` cho trường hợp race.
+> - Test: tạo/trùng ngày/hạ chỗ/ngày về sai/đổi trạng thái + audit/chặn xoá khi có đơn/xoá
+>   khi sạch/404 — nằm trong `scripts/tests/admin-content.test.mts`.
+
+---
+
+### D2 · Cấu hình đặt tour — **đã xong**
+
+| | |
+|---|---|
+| **Mục tiêu** | Admin đổi `minDaysAhead` / `maxGuestsPerOrder` / `holdHours` / `cancelCutoffDays` từ UI |
+| **Tạo mới** | `server/settings/update-booking-settings.ts` · `app/admin/(dashboard)/settings/{page.tsx,actions.ts}` |
+| **Bẫy** | `settings.booking` trong DB **có field ngoài** `BookingSettings` (`cancellationPolicy`). Ghi đè nguyên object sẽ **mất dữ liệu** |
+| **Done khi** | Lưu → `getBookingSettings()` trả số mới · giá trị vượt biên bị kẹp · `cancellationPolicy` còn nguyên |
+
+> **Đã làm & kiểm chứng**
+>
+> - Trang `/admin/settings` hiển thị 4 ô số kèm khoảng hợp lệ và ghi chú rằng hotline/email/
+>   địa chỉ vẫn đọc từ fixture (sửa DB không đổi nội dung công khai).
+> - **Lỗi dữ liệu phát hiện và đã sửa:** bản đầu ghi `value = normalizeBookingSettings(input)`
+>   → xoá mất `cancellationPolicy` (đúng như cảnh báo ở B5). Nay service **merge**:
+>   `{ ...valueCũ, ...4keyMới }`, và audit ghi thêm `preservedKeys`.
+> - Test mới: chèn `cancellationPolicy` + `qaMarker`, lưu cấu hình, assert cả hai còn nguyên;
+>   khôi phục nguyên trạng trong `finally`.
+> - Giá trị rác bị kẹp: `999 → 168`, `-5 → 0`, `0 → 1` (đã có test từ T4, giữ nguyên).
+
+---
+
+### D3 · Hộp thư liên hệ + Tài khoản quản trị — **đã xong**
+
+| | |
+|---|---|
+| **Mục tiêu** | Đọc lời nhắn khách gửi (trước đây ghi DB nhưng không ai thấy) + quản lý người dùng admin |
+| **Tạo mới** | `server/contact/admin-messages.ts` · `server/auth/admin-users.ts` · `app/admin/(dashboard)/messages/{page.tsx,actions.ts}` · `app/admin/(dashboard)/users/{page.tsx,actions.ts}` · `components/admin/access-denied.tsx` |
+| **Sửa** | `components/admin/{admin-nav-links,admin-sidebar,admin-mobile-nav}.tsx` (thêm mục + truyền `role`) |
+| **Bẫy** | Không được để admin tự khoá/xoá mình, hoặc bỏ **owner hoạt động cuối cùng** — sẽ mất đường vào hệ thống |
+| **Done khi** | Tin khách gửi hiện trong `/admin/messages`, đổi trạng thái được · tạo tài khoản mới đăng nhập được · không tự khoá được mình |
+
+**Quy tắc đã cài:**
+
+| Quy tắc | Mã lỗi |
+|---|---|
+| Email tài khoản là duy nhất | `ADMIN_EMAIL_TAKEN` (409) |
+| Mật khẩu ≥ 8 ký tự | `WEAK_PASSWORD` (400) |
+| Không tự vô hiệu hoá | `ADMIN_SELF_DISABLE` (409) |
+| Không tự xoá | `ADMIN_SELF_DELETE` (409) |
+| Không bỏ owner hoạt động cuối | `ADMIN_LAST_OWNER` (409) |
+
+> **Đã làm & kiểm chứng**
+>
+> - Hộp thư: 4 chip trạng thái kèm số lượng, tìm theo tên/SĐT/email/nội dung, phân trang
+>   giữ filter, đổi trạng thái + xoá, audit `contact.status|delete`.
+> - Tài khoản: danh sách, tạo (bcrypt cost 10), sửa tên/vai trò/khoá, đặt lại mật khẩu, xoá.
+>   Audit `admin.create|update|password|delete`, **không** ghi mật khẩu vào meta.
+> - `/admin/users` chỉ owner: menu ẩn với role khác, vào thẳng URL thì thấy panel
+>   "Không có quyền" thay vì redirect im lặng.
+> - Test: đổi trạng thái + audit + 404 sau xoá; tạo user → **đăng nhập thật** bằng
+>   `authenticateAdmin`; reset mật khẩu thì mật khẩu cũ hết hiệu lực; khoá thì không đăng nhập
+>   được; các guard self/last-owner.
+> - **Hạn chế đã biết:** đổi mật khẩu **không** huỷ JWT đang có (cookie stateless). Khoá tài
+>   khoản thì có hiệu lực ngay vì `getAdminSession()` đọc `isActive` mỗi request. Muốn chặt hơn
+>   phải thêm `tokenVersion` vào JWT — xem D6.
+
+---
+
+### D4 · Nội dung tour + Thư viện media — **đã xong**
+
+| | |
+|---|---|
+| **Mục tiêu** | Sửa nội dung tour **có tác dụng thật** (trang đặt tour đọc DB) + quản lý danh mục ảnh |
+| **Tạo mới** | `server/catalog/admin-tours.ts` · `server/media/admin-media.ts` · `app/admin/(dashboard)/tours/[slug]/{page.tsx,actions.ts}` · `app/admin/(dashboard)/media/{page.tsx,actions.ts}` |
+| **Bẫy** | Ảnh bìa nhập URL ngoài sẽ làm `next/image` ném lỗi runtime (xem D0) |
+| **Done khi** | Sửa giá/tên → `/dat-tour` đổi ngay · đổi trạng thái "Nháp" thì biến khỏi danh sách bán · media thêm/sửa/xoá được |
+
+> **Đã làm & kiểm chứng**
+>
+> - Tour editor 20 trường: tên, tagline, tóm tắt, mô tả, số ngày/đêm, 2 giá, ghi chú tuổi,
+>   chính sách huỷ, dặn dò, ảnh bìa, SEO title/description, thứ tự, nổi bật + **đổi trạng thái
+>   bán** bằng 3 nút (Nháp / Đang bán / Lưu trữ).
+> - Ô ảnh bìa dùng `<datalist>` lấy từ media đang hoạt động + preview ảnh hiện tại.
+> - Media: validate **`image` chỉ nhận `/images/...`**, `youtube` nhận http(s); tags nhập chuỗi
+>   phẩy; audit `media.create|update|delete`.
+> - **Chưa làm (cố ý):** lịch trình từng ngày, gallery, liên kết điểm đến/món ăn — cần form
+>   quan hệ phức tạp, vẫn do seed quản lý.
+> - Test: đổi tên/giá/ảnh bìa, đổi trạng thái, chặn ảnh ngoài, chặn thời lượng sai, 404,
+>   ô rỗng lưu thành `NULL`.
+
+---
+
+### D5 · Kiểm duyệt đánh giá + xuất CSV — **đã xong**
+
+| | |
+|---|---|
+| **Mục tiêu** | Duyệt/ẩn/phản hồi đánh giá; xuất đơn ra CSV mở được bằng Excel |
+| **Tạo mới** | `server/reviews/admin-reviews.ts` · `lib/csv.ts` · `app/api/admin/orders/export/route.ts` · `app/admin/(dashboard)/reviews/{page.tsx,actions.ts}` |
+| **Sửa** | `server/booking/admin-queries.ts` (tách `buildOrderWhere`, thêm `listAdminOrdersForExport`) · `app/admin/(dashboard)/orders/page.tsx` (nút Xuất CSV) |
+| **Bẫy** | Dữ liệu khách nhập có thể bắt đầu bằng `=`, `+`, `-`, `@` → **CSV injection** trong Excel |
+| **Done khi** | Duyệt đánh giá → `approvedAt` có giá trị · CSV tải về mở bằng Excel không lỗi font, không chạy công thức |
+
+> **Đã làm & kiểm chứng**
+>
+> - Đánh giá: lọc 4 trạng thái + số lượng, duyệt/từ chối/ẩn, gắn nổi bật, phản hồi của admin
+>   (xoá được), xoá; audit `review.status|featured|reply|delete`.
+> - CSV: 13 cột, UTF-8 **BOM**, CRLF, tối đa 5000 dòng, giữ filter hiện tại; ô nguy hiểm được
+>   thêm `'` để Excel không thực thi công thức (`lib/csv.ts`).
+> - **Chưa làm (cố ý):** "phân công đơn" — cần cột `assignedAdminId` + migration, tách sang D7.
+> - **Hệ quả đã biết:** `/admin/reviews` sẽ **rỗng** cho tới khi có kênh khách gửi (D8).
+> - Test: 4 case CSV (quote/newline/BOM/injection) trong `scripts/tests/unit/csv.test.ts`, cộng các
+>   case reviews/media/tour bổ sung trong `scripts/tests/admin-content.test.mts`.
+
+---
+
+### D6 · Phân quyền theo vai trò — **TODO (ưu tiên 1)**
+
+**Vấn đề:** `owner / admin / editor` hiện chỉ dùng ở `/admin/users`. Một `editor` vẫn sửa
+được **giá tour, chuyến, cấu hình booking** vì các trang đó chỉ kiểm tra "đã đăng nhập".
+
+| | |
+|---|---|
+| **Mục tiêu** | Mọi trang/action kiểm tra **capability**, không chỉ kiểm tra đăng nhập |
+| **Tạo mới** | `server/auth/permissions.ts` (`Capability`, `ROLE_MATRIX`, `can(role, cap)`) · `lib/auth/session.ts` thêm `requireCapabilityPage(cap)` · `scripts/tests/unit/permissions.test.ts` |
+| **Sửa** | Toàn bộ `app/admin/(dashboard)/**/page.tsx` + `actions.ts` · `components/admin/admin-nav-links.tsx` (nhận `capabilities: string[]` thay `role`) · `admin-sidebar`/`admin-mobile-nav` (truyền capabilities) |
+| **Ma trận** | xem bảng dưới |
+| **Bẫy** | Ẩn menu **không phải** là phân quyền — phải chặn ở cả page và action (gõ URL trực tiếp, và gọi action bằng POST thủ công) |
+| **Done khi** | `editor` mở `/admin/tours` → panel không có quyền · menu ẩn mục không đủ quyền · `admin` không vào được `/admin/users` · `owner` tất cả · unit test phủ kín ma trận |
+
+| Capability | owner | admin | editor |
+|---|:--:|:--:|:--:|
+| `orders:read` (`/admin`, `/admin/orders`) | ✅ | ✅ | ✅ |
+| `orders:write` (đổi trạng thái, huỷ) | ✅ | ✅ | ❌ |
+| `orders:export` | ✅ | ✅ | ❌ |
+| `catalog:write` (tour, giá, chuyến) | ✅ | ✅ | ❌ |
+| `settings:write` | ✅ | ✅ | ❌ |
+| `content:write` (media, reviews) | ✅ | ✅ | ✅ |
+| `messages:read` / `messages:write` | ✅ | ✅ | ✅ |
+| `users:manage` | ✅ | ❌ | ❌ |
+| `audit:read` (D10) | ✅ | ❌ | ❌ |
+
+**Triển khai gợi ý:**
+
+```ts
+// server/auth/permissions.ts — hàm thuần, không Prisma
+export const CAPABILITIES = ["orders:read", "orders:write", …] as const;
+export type Capability = (typeof CAPABILITIES)[number];
+const MATRIX: Record<string, Capability[]> = { owner: [...], admin: [...], editor: [...] };
+export function can(role: string, cap: Capability): boolean {
+  return (MATRIX[role] ?? []).includes(cap);
+}
+```
+
+`requireCapabilityPage(cap, nextPath)` = `requireAdminPage` + `can()`; nếu không đủ thì **render
+`AccessDenied`** (đã có component) thay vì redirect — giữ nguyên pattern của `/admin/users`.
+Song song thêm `requireCapabilityApi(cap)` ném `AppError("FORBIDDEN", …, 403)` để dùng cho
+route handler về sau.
+
+**Việc phụ nên gộp vào D6:** thêm `tokenVersion` vào `AdminUser` + JWT để **đổi mật khẩu/khoá
+tài khoản huỷ được phiên cũ** (đang là hạn chế ở D3). Cần migration → gộp chung đợt migrate
+với D7 để chỉ chạy một lần.
+
+---
+
+### D7 · Ghi chú nội bộ + phân công đơn — **TODO (cần migration)**
+
+| | |
+|---|---|
+| **Mục tiêu** | Admin ghi chú nội bộ cho từng đơn và giao đơn cho một người phụ trách |
+| **Schema** | `Order.assignedAdminId Int? @map("assigned_admin_id")` + relation `assignedAdmin AdminUser?` (`onDelete: SetNull`) + `@@index([assignedAdminId, status])` |
+| **Migration** | `node scripts/with-db.mjs dev npx prisma migrate dev --name order_assignment` → `npm run db:migrate:test` (**không** dùng `npm run db:migrate` vì nó trỏ `DATABASE_URL` production) |
+| **Tạo mới** | `server/booking/admin-order-notes.ts` (`updateAdminNote`, `assignOrder`) |
+| **Sửa** | `server/booking/admin-dto.ts` (thêm `assignedAdmin`), `app/admin/(dashboard)/orders/[id]/page.tsx` (card "Nội bộ"), `app/admin/(dashboard)/orders/page.tsx` (filter `?assignee=me|unassigned`) |
+| **Bẫy** | `adminNote` đã có trong DB + DTO nhưng **chưa có UI** — chỉ cần render, không thêm cột. Còn `assignedAdminId` là cột mới |
+| **Done khi** | Ghi chú → reload còn · giao đơn → filter "của tôi" đúng · audit có `order.note` / `order.assign` · đơn không bị đổi `status` ngoài ý muốn |
+
+> **Ghi chú thiết kế:** giữ nguyên state machine cũ; ghi chú/phân công **không** tạo dòng
+> `order_status_history` (chỉ ghi `admin_audit_log`), vì lịch sử trạng thái phải phản ánh
+> đúng nghiệp vụ đơn, không phải hoạt động nội bộ.
+
+---
+
+### D8 · Kênh khách gửi đánh giá — **TODO**
+
+| | |
+|---|---|
+| **Mục tiêu** | Có dữ liệu thật cho `/admin/reviews`; đánh giá từ khách đã đi tour được gắn "đã đi tour" |
+| **Tạo mới** | `lib/validation/review.ts` · `server/reviews/create-review.ts` · `app/api/reviews/route.ts` · `components/reviews/review-form.tsx` |
+| **Sửa** | `app/(site)/tra-cuu-don/page.tsx` (hiện form khi đơn `completed`) |
+| **Chống spam** | `rateLimit(3/10 phút/IP)` · honeypot field · `comment` 10–1000 ký tự · chỉ nhận `rating` 1–5 |
+| **Xác thực** | Nếu client gửi kèm `orderCode` + `phone` khớp đơn `completed` → gắn `orderId` (DB unique) và `tourId` từ đơn ⇒ `isVerified = true`. Không khớp → 404 **cùng message** (chống dò đơn, giống B3) |
+| **Bẫy** | `Review.orderId` là `@unique` → một đơn chỉ được 1 đánh giá; phải bắt `P2002` và trả lỗi thân thiện. `reviews.phone` là dữ liệu nhạy cảm: **không** trả ra ngoài DTO |
+| **Done khi** | Gửi đánh giá từ trang tra cứu → `status = pending` · admin duyệt → hiện `approvedAt` · gửi lần 2 cho cùng đơn bị chặn · SĐT không lộ trong response/UI |
+
+---
+
+### D9 · Public đọc DB + CRUD nội dung — **TODO (lớn, tách 5 bước)**
+
+**Vấn đề gốc:** `app/(site)/**` đọc `lib/fixtures/*`. Nếu chỉ thêm CRUD vào DB thì **sửa
+không ai thấy** — đúng như đã cảnh báo khi chốt phạm vi P4.
+
+| Bước | Việc | Done khi |
+|---|---|---|
+| **D9.1** | Loader DB cho `destinations` + `"use cache"` + `cacheTag` + `revalidateTag` sau khi admin lưu; **fallback fixture khi DB rỗng** | Sửa điểm đến trong admin → `/diem-den` đổi sau revalidate; DB rỗng vẫn render |
+| **D9.2** | Loader cho `posts` (`/kinh-nghiem`) | Bài viết trong DB thay fixture |
+| **D9.3** | Loader cho `cuisines` + `faqs` | `/am-thuc` + FAQ trang chủ đọc DB |
+| **D9.4** | CRUD admin cho 4 domain (`/admin/destinations`, `/admin/posts`, `/admin/cuisines`, `/admin/faqs`) theo mẫu D4 | Tạo/sửa/xoá được, có audit |
+| **D9.5** | Xoá dần `lib/fixtures/*` (trừ `site.ts` vẫn là nguồn brand) + cập nhật test | `grep "@/lib/fixtures/destinations"` = 0; build/test xanh |
+
+**Rủi ro phải chấp nhận:** trang chủ mất `○` (static) → chuyển `ƒ` hoặc dùng `"use cache"`
++ `revalidateTag` để vẫn cache. Quyết định cache **trước** khi code, không sửa giữa đường.
+
+**Thứ tự an toàn:** làm từng domain, mỗi domain một PR nhỏ, chạy đủ cổng
+`tsc + lint + build + npm test` trước khi sang domain kế.
+
+---
+
+### D10 · Hoàn thiện vận hành — **TODO**
+
+| Hạng mục | Thiết kế | Bẫy |
+|---|---|---|
+| **Upload ảnh** | `POST /api/admin/media/upload` (multipart) → `sharp` resize 1920 + WebP q78 → lưu trữ → tạo `Media` row | Hệ thống file trên serverless/VPS là ephemeral ⇒ **không ghi vào `public/images`** trong production. `.env` đã có `CLOUDINARY_URL` → dùng Cloudinary (hoặc S3) và lưu URL trả về |
+| **Màn audit log** | `/admin/audit` (owner): lọc theo `entity`, `action`, `adminId`, khoảng ngày; read-only; phân trang | Bảng sẽ rất lớn → bắt buộc index + `take` giới hạn (đã có `@@index([entity, entityId, createdAt])`) |
+| **Badge tin mới** | Truyền `unreadMessages` từ layout (đã có `countContactMessagesByStatus`) xuống `AdminNavLinks` | Nav là client component → chỉ nhận số, không tự query |
+| **Đổi mật khẩu tự phục vụ** | Trang "Tài khoản của tôi" cho mọi role (không chỉ owner) | Gộp với `tokenVersion` ở D6 để đổi mật khẩu là huỷ phiên cũ |
+
+---
+
+### 10.7 Sơ đồ phụ thuộc
+
+```
+D0 ──▶ D1 ──▶ D2
+ └──▶ D4 ──▶ D5
+D3 ──┐
+D5 ──┴──▶ D6 ──┬──▶ D7
+               └──▶ D10 (audit, badge, upload)
+D8 ──▶ (nuôi dữ liệu cho) D5
+D9.1 ──▶ D9.2 ──▶ D9.3 ──▶ D9.4 ──▶ D9.5
+```
+
+- **D0 trước tất cả** — bỏ `remotePatterns` là điều kiện để `next/image` không nổ.
+- **D6 trước D7/D10** — cả hai thêm trang/action mới, phải có capability sẵn để không phải sửa lại.
+- **D8 độc lập**, nhưng làm sớm thì D5 mới có dữ liệu để kiểm duyệt thật.
+- **D9 sau cùng** vì nó đổi kiến trúc render của storefront; không nên trộn với việc admin.
+
+### 10.8 Rủi ro
+
+| Rủi ro | Giảm thiểu |
+|---|---|
+| Ảnh DB cũ là URL ngoài → `next/image` ném lỗi runtime | `toLocalImage` chặn ở mọi chỗ đọc DB; grep `https://` trong `fixtures`/`seed` trước khi build |
+| Admin sửa giá/chuyến khi chưa phân quyền | D6 làm trước D7; hiện tại chỉ nên cấp tài khoản `owner` cho người tin cậy |
+| Migration thêm cột chạy nhầm vào production | Dùng `node scripts/with-db.mjs dev npx prisma migrate dev`; `DATABASE_URL` chỉ dùng cho `migrate deploy` khi go-live |
+| `settings.booking` bị ghi đè làm mất `cancellationPolicy` | **Đã sửa** ở D2 (merge); test khoá lại |
+| Xoá fixture ở D9.5 làm mất nội dung marketing đang đẹp | Làm từng domain, so sánh bằng mắt trên dev trước khi xoá; giữ fallback đến bước cuối |
+| Upload ảnh ghi vào `public/` rồi mất khi deploy | Dùng Cloudinary/S3, không ghi filesystem |
+| JWT cũ vẫn dùng được sau khi đổi mật khẩu | `tokenVersion` ở D6 + kiểm trong `getAdminSession()` |
+
+### 10.9 Khối lượng ước tính
+
+| Phase | Tạo mới | Sửa | Ghi chú |
+|---|---|---|---|
+| D6 | 2 (`permissions.ts`, test) | ~20 (mọi page/action/nav) | Cơ học nhưng rộng; làm một lần |
+| D7 | 2 (service, migration) | 4 | Cần migrate dev + test |
+| D8 | 4 | 2 | Kèm rate limit + test route |
+| D9 | 4 loader + 4 trang admin | ~12 | Chia 5 bước nhỏ, mỗi bước một cổng |
+| D10 | 3 | 3 | Upload cần quyết định Cloudinary trước |
+
+**Thứ tự thực thi: D6 → D7 → (D8 song song) → D10 → D9.**
+D9 để cuối vì nó đổi kiến trúc render; D6 phải xong trước mọi thứ thêm quyền.
+
+---
+
+## 11. Errata — sai lệch so với các mục trước
+
+Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2–§9; đọc kèm khi làm Track D.
+
+| Mục | Nội dung cũ | Thực tế hiện tại |
+|---|---|---|
+| §B1 (ghi chú) | "URL ảnh trong seed là `upload.wikimedia.org` → đã có trong `next.config.ts#images.remotePatterns`" | **Sai**: `remotePatterns` đã bị xoá ở D0. Mọi ảnh phải là `/images/*.webp`; dữ liệu DB cũ đi qua `lib/images.ts#toLocalImage` |
+| §B1 (`coverImage`) | `coverImage: { src: tour.coverImageUrl, … }` | Phải bọc `toLocalImage(tour.coverImageUrl, tour.name)` — nếu không, một row còn URL ngoài sẽ làm sập trang |
+| §B4 | "Trang `/admin/messages` … để phase sau" | **Đã xong** ở D3 |
+| §T4 | "Tổng 111 test case" · coverage 74.31 / 90.24 / 94.56 | Hiện **144 test**, coverage đo lại ≈ 81.2 / 88.3 / 92.8 (vẫn qua gate 72 / 88 / 92) |
+| §T0 | `helpers/factories.ts` là nguồn tạo dữ liệu test duy nhất | Vẫn đúng, nhưng `scripts/tests/admin-content.test.mts` tự tạo dữ liệu riêng (chuyến 2031, media, review, admin) và **khôi phục** settings/tour trong `after()` |
+| §9.6 | Track C: 5 file mới | Không đổi; Track D thêm 8 trang admin + 7 service (xem §10.9) |
+| §0 (quyết định 1) | "Server Actions chỉ cho form admin" | Đúng và đang giữ: **toàn bộ** admin dùng server action, trừ `/api/admin/orders*` + `/api/admin/login|logout|me` |
+| Ngoài plan | — | `app/admin/login/page.tsx:16` từng ném `Blocking Route` vì `new Date()` dưới `cacheComponents`; đã bọc `"use cache"` (xem D0) |
+| Ngoài plan | — | `prisma/seed.mjs` đã chạy lại trên **DB production** ngày 16/11/2026: tours/destinations/posts/faqs/media quay về nội dung seed. Nếu trước đó có sửa tay trên production thì đã bị ghi đè (không đụng `orders`, khách hàng, mật khẩu admin) |
+| Ngoài plan | — | `settings.ogImage` vẫn là URL Wikimedia cũ vì `seedSettings()` chỉ update khi `SEED_FORCE_SETTINGS=1`. Biến này **không được đọc ở đâu** trong code nên không ảnh hưởng render; sẽ dọn khi D9 chuyển `seo` sang DB |
+

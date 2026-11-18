@@ -350,6 +350,57 @@ test("cấu hình booking ghi được và được chuẩn hoá khi đọc lạ
   });
 });
 
+test("cấu hình booking: giữ nguyên field lạ (cancellationPolicy)", async () => {
+  const KEY = "booking";
+  const before = await prisma.setting.findUnique({
+    where: { key: KEY },
+    select: { value: true },
+  });
+  const originalValue = (before?.value ?? {}) as Record<string, unknown>;
+
+  try {
+    await prisma.setting.upsert({
+      where: { key: KEY },
+      update: {
+        value: JSON.parse(
+          JSON.stringify({
+            ...originalValue,
+            cancellationPolicy: "Chính sách QA",
+            qaMarker: "keep-me",
+          }),
+        ),
+      },
+      create: {
+        key: KEY,
+        value: {
+          cancellationPolicy: "Chính sách QA",
+          qaMarker: "keep-me",
+        },
+      },
+    });
+
+    await updateBookingSettings(
+      { minDaysAhead: 2, maxGuestsPerOrder: 10, holdHours: 6, cancelCutoffDays: 2 },
+      adminId,
+    );
+
+    const after = await prisma.setting.findUniqueOrThrow({
+      where: { key: KEY },
+      select: { value: true },
+    });
+    const value = after.value as Record<string, unknown>;
+
+    assert.equal(value.cancellationPolicy, "Chính sách QA");
+    assert.equal(value.qaMarker, "keep-me");
+    assert.equal(value.holdHours, 6);
+  } finally {
+    await prisma.setting.update({
+      where: { key: KEY },
+      data: { value: JSON.parse(JSON.stringify(originalValue)) },
+    });
+  }
+});
+
 // ---------------------------------------------------------------------------
 // P2 · Hộp thư liên hệ
 // ---------------------------------------------------------------------------

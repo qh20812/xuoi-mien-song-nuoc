@@ -23,11 +23,23 @@ export async function updateBookingSettings(
   });
   const previous = normalizeBookingSettings(current?.value);
 
+  /**
+   * `settings.booking` trong DB có thể chứa field ngoài `BookingSettings`
+   * (hiện tại: `cancellationPolicy` do seed ghi). Ghi đè nguyên object sẽ làm
+   * mất các field đó, nên phải merge: giữ key lạ, chỉ thay 4 key đã biết.
+   */
+  const raw = current?.value;
+  const base =
+    raw !== null && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {};
+  const value = { ...base, ...next };
+
   await prisma.$transaction(async (tx) => {
     await tx.setting.upsert({
       where: { key: BOOKING_SETTING_KEY },
-      update: { value: next },
-      create: { key: BOOKING_SETTING_KEY, value: next },
+      update: { value },
+      create: { key: BOOKING_SETTING_KEY, value },
     });
 
     await tx.adminAuditLog.create({
@@ -36,7 +48,7 @@ export async function updateBookingSettings(
         action: "settings.booking.update",
         entity: "setting",
         entityId: null,
-        meta: { from: previous, to: next },
+        meta: { from: previous, to: next, preservedKeys: Object.keys(base).filter((key) => !(key in next)) },
       },
     });
   });
