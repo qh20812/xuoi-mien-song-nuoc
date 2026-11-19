@@ -64,7 +64,7 @@ before(async () => {
     select: { id: true },
   });
   await prisma.order.deleteMany({
-    where: { tourId: tour.id, code: { startsWith: "TEST-DEP-" } },
+    where: { code: { startsWith: "TEST-DEP-" } },
   });
   await prisma.tourDeparture.deleteMany({
     where: { tourId: tour.id, departureDate: { gte: new Date("2031-01-01") } },
@@ -89,7 +89,7 @@ after(async () => {
     select: { id: true },
   });
   await prisma.order.deleteMany({
-    where: { tourId: tour.id, code: { startsWith: "TEST-DEP-" } },
+    where: { code: { startsWith: "TEST-DEP-" } },
   });
   await prisma.tourDeparture.deleteMany({
     where: { tourId: tour.id, departureDate: { gte: new Date("2031-01-01") } },
@@ -793,8 +793,7 @@ test("export đơn: trả dòng phẳng đủ cột cho CSV", async () => {  con
   }
 });
 
-test("P4/P5: ô rỗng thành null và các nhánh 404", async () => {
-  const { isAdminTourStatus } = await import("@/server/catalog/admin-tours");
+test("P4/P5: ô rỗng thành null và các nhánh 404", async () => {  const { isAdminTourStatus } = await import("@/server/catalog/admin-tours");
   const { updateMedia } = await import("@/server/media/admin-media");
   const { deleteReview } = await import("@/server/reviews/admin-reviews");
 
@@ -874,4 +873,268 @@ test("P4/P5: ô rỗng thành null và các nhánh 404", async () => {
     (error: { code?: string; status?: number }) =>
       error.code === "REVIEW_NOT_FOUND" && error.status === 404,
   );
+});
+
+// ---------------------------------------------------------------------------
+// D7 · Ghi chú nội bộ, phân công đơn, tokenVersion
+// ---------------------------------------------------------------------------
+
+async function createOrderForTest(label: string) {
+  const departure = await prisma.tourDeparture.findFirstOrThrow({
+    select: { id: true, tourId: true },
+  });
+
+  return prisma.order.create({
+    data: {
+      // `orders.code` là VarChar(24) — cắt nhãn cho vừa.
+      code: `TEST-DEP-${label.slice(0, 4)}-${randomUUID().slice(0, 6)}`,
+      tourId: departure.tourId,
+      departureId: departure.id,
+      contactName: `QA ${label}`,
+      phone: "0911000009",
+      adults: 1,
+      unitPriceAdult: 1_000,
+      totalAmount: 1_000,
+      lookupToken: randomUUID().replace(/-/g, "").slice(0, 24),
+    },
+    select: { id: true, code: true },
+  });
+}
+
+test("đơn: ghi chú nội bộ được lưu, trim và không đổi trạng thái", async () => {
+  const { updateOrderAdminNote } = await import(
+    "@/server/booking/admin-order-notes"
+  );
+
+  const order = await createOrderForTest("NOTE");
+
+  await updateOrderAdminNote(order.id, "  gọi lại sau 18h  ", adminId);
+
+  const saved = await prisma.order.findUniqueOrThrow({
+    where: { id: order.id },
+    select: { adminNote: true, status: true, assignedAdminId: true },
+  });
+
+  assert.equal(saved.adminNote, "gọi lại sau 18h");
+  assert.equal(saved.status, "new", "ghi chú không được đổi trạng thái");
+  assert.equal(saved.assignedAdminId, null);
+
+  const audits = await prisma.adminAuditLog.count({
+    where: { entity: "order", entityId: order.id, action: "order.note" },
+  });
+  assert.ok(audits >= 1);
+
+  // Chuỗi rỗng ⇒ xoá ghi chú.
+  await updateOrderAdminNote(order.id, "   ", adminId);
+  const cleared = await prisma.order.findUniqueOrThrow({
+    where: { id: order.id },
+    select: { adminNote: true },
+  });
+  assert.equal(cleared.adminNote, null);
+
+  await prisma.order.delete({ where: { id: order.id } });
+});
+
+test("đơn: phân công, lọc theo người phụ trách và bỏ phân công", async () => {
+  const { assignOrder } = await import("@/server/booking/admin-order-notes");
+  const { listAdminOrders } = await import("@/server/booking/admin-queries");
+
+  const order = await createOrderForTest("ASSIGN");
+
+  await assignOrder(order.id, adminId, adminId);
+
+  const mine = await listAdminOrders({
+    assignee: "me",
+    viewerId: adminId,
+    pageSize: 100,
+  });
+  const assigned = mine.orders.find((item) => item.id === order.id);
+  assert.ok(assigned, "đơn phải nằm trong danh sách 'Của tôi'");
+  assert.equal(assigned.assignee?.id, adminId);
+  assert.ok(assigned.assignee?.name);
+
+  const unassigned = await listAdminOrders({
+    assignee: "unassigned",
+    viewerId: adminId,
+    pageSize: 100,
+  });
+  assert.ok(!unassigned.orders.some((item) => item.id === order.id));
+
+  const audits = await prisma.adminAuditLog.count({
+    where: { entity: "order", entityId: order.id, action: "order.assign" },
+  });
+  assert.ok(audits >= 1);
+
+  // Gán lại cùng người ⇒ idempotent, không tạo thêm audit.
+  await assignOrder(order.id, adminId, adminId);
+  const auditsAgain = await prisma.adminAuditLog.count({
+    where: { entity: "order", entityId: order.id, action: "order.assign" },
+  });
+  assert.equal(auditsAgain, audits);
+
+  // Bỏ phân công.
+  await assignOrder(order.id, null, adminId);
+  const cleared = await prisma.order.findUniqueOrThrow({
+    where: { id: order.id },
+    select: { assignedAdminId: true },
+  });
+  assert.equal(cleared.assignedAdminId, null);
+
+  await prisma.order.delete({ where: { id: order.id } });
+});
+
+test("đơn: không giao được cho tài khoản đã khoá hoặc không tồn tại", async () => {
+  const { assignOrder } = await import("@/server/booking/admin-order-notes");
+
+  const order = await createOrderForTest("ASSIGN-ERR");
+
+  await assert.rejects(
+    () => assignOrder(order.id, 999_999_999, adminId),
+    (error: { code?: string; status?: number }) =>
+      error.code === "ADMIN_NOT_FOUND" && error.status === 404,
+  );
+
+  await assert.rejects(
+    () => assignOrder(999_999_999, adminId, adminId),
+    (error: { code?: string }) => error.code === "ORDER_NOT_FOUND",
+  );
+
+  const inactive = await prisma.adminUser.create({
+    data: {
+      email: `qa-inactive-${randomUUID().slice(0, 6)}@admin-ops.test`,
+      name: "QA Inactive",
+      passwordHash: "x",
+      isActive: false,
+    },
+    select: { id: true },
+  });
+
+  await assert.rejects(
+    () => assignOrder(order.id, inactive.id, adminId),
+    (error: { code?: string; status?: number }) =>
+      error.code === "ADMIN_INACTIVE" && error.status === 409,
+  );
+
+  await prisma.order.delete({ where: { id: order.id } });
+  await prisma.adminUser.delete({ where: { id: inactive.id } });
+});
+
+test("danh sách người phụ trách chỉ gồm tài khoản đang hoạt động", async () => {
+  const { listAssignableAdmins } = await import(
+    "@/server/booking/admin-order-notes"
+  );
+
+  const inactive = await prisma.adminUser.create({
+    data: {
+      email: `qa-off-${randomUUID().slice(0, 6)}@admin-ops.test`,
+      name: "QA Off",
+      passwordHash: "x",
+      isActive: false,
+    },
+    select: { id: true },
+  });
+
+  const list = await listAssignableAdmins();
+
+  assert.ok(list.length >= 1);
+  assert.ok(list.every((item) => Number.isInteger(item.id)));
+  assert.ok(!list.some((item) => item.id === inactive.id));
+
+  await prisma.adminUser.delete({ where: { id: inactive.id } });
+});
+
+test("truy vấn admin: kẹp pageSize, lọc phân công, export và đếm", async () => {
+  const {
+    countOrdersByStatus,
+    isAdminOrderAssignee,
+    listAdminOrders,
+    listAdminOrdersForExport,
+  } = await import("@/server/booking/admin-queries");
+  const { assignOrder } = await import("@/server/booking/admin-order-notes");
+
+  assert.equal(isAdminOrderAssignee("me"), true);
+  assert.equal(isAdminOrderAssignee("unassigned"), true);
+  assert.equal(isAdminOrderAssignee("all"), false);
+  assert.equal(isAdminOrderAssignee(undefined), false);
+
+  const order = await createOrderForTest("QUERY");
+  await assignOrder(order.id, adminId, adminId);
+
+  // pageSize vượt biên bị kẹp; `me` thiếu viewerId thì bỏ điều kiện lọc.
+  const clamped = await listAdminOrders({ pageSize: 999, assignee: "me" });
+  assert.ok(clamped.pagination.pageSize <= 100);
+  assert.ok(clamped.orders.some((item) => item.id === order.id));
+
+  // Mặc định (không truyền gì) và trang 2.
+  const defaults = await listAdminOrders();
+  assert.equal(defaults.pagination.page, 1);
+  assert.ok(defaults.pagination.pageSize >= 1);
+
+  const secondPage = await listAdminOrders({ page: 2, pageSize: 1 });
+  assert.equal(secondPage.pagination.page, 2);
+
+  const exportRows = await listAdminOrdersForExport({
+    assignee: "me",
+    viewerId: adminId,
+    limit: 5,
+  });
+  const exported = exportRows.find((row) => row.code === order.code);
+  assert.ok(exported, "đơn phải có trong file export");
+  assert.match(exported.departureDate ?? "", /^\d{4}-\d{2}-\d{2}$/);
+
+  const counts = await countOrdersByStatus();
+  assert.equal(typeof counts, "object");
+
+  await prisma.order.delete({ where: { id: order.id } });
+});
+
+test("tokenVersion tăng khi đổi mật khẩu và khi khoá tài khoản", async () => {
+  const { createAdminUser, deleteAdminUser, resetAdminPassword, updateAdminUser } =
+    await import("@/server/auth/admin-users");
+  const { signAdminToken, verifyAdminToken } = await import("@/lib/auth/token");
+
+  const email = `qa-token-${randomUUID().slice(0, 6)}@admin-ops.test`;
+  const created = await createAdminUser(
+    { email, name: "QA Token", password: "QaTest#2026", role: "editor" },
+    adminId,
+  );
+
+  const before = await prisma.adminUser.findUniqueOrThrow({
+    where: { id: created.id },
+    select: { tokenVersion: true },
+  });
+
+  const token = await signAdminToken({
+    id: created.id,
+    email,
+    role: "editor",
+    tokenVersion: before.tokenVersion,
+  });
+  const claims = await verifyAdminToken(token);
+  assert.equal(claims?.tokenVersion, before.tokenVersion);
+
+  await resetAdminPassword(created.id, "NewPass#2026", adminId);
+  const afterReset = await prisma.adminUser.findUniqueOrThrow({
+    where: { id: created.id },
+    select: { tokenVersion: true },
+  });
+  assert.equal(afterReset.tokenVersion, before.tokenVersion + 1);
+  assert.notEqual(
+    claims?.tokenVersion,
+    afterReset.tokenVersion,
+    "token cũ phải lệch phiên bản ⇒ getAdminSession từ chối",
+  );
+
+  await updateAdminUser(
+    created.id,
+    { name: "QA Token", role: "editor", isActive: false },
+    adminId,
+  );
+  const afterDisable = await prisma.adminUser.findUniqueOrThrow({
+    where: { id: created.id },
+    select: { tokenVersion: true },
+  });
+  assert.equal(afterDisable.tokenVersion, afterReset.tokenVersion + 1);
+
+  await deleteAdminUser(created.id, adminId);
 });

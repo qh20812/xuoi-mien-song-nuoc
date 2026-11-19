@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { AccessDenied } from "@/components/admin/access-denied";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityPage } from "@/lib/auth/session";
 import { formatDateVN } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -45,7 +46,8 @@ export default async function AdminReviewsPage({
 }: {
   searchParams: Promise<{ status?: string; page?: string; ok?: string; error?: string }>;
 }) {
-  await requireAdminPage("/admin/reviews");
+  const admin = await requireCapabilityPage("content:write", "/admin/reviews");
+  if (!admin) return <AccessDenied title="Không có quyền kiểm duyệt đánh giá" />;
 
   const params = await searchParams;
   const status = isAdminReviewStatus(params.status) ? params.status : undefined;
@@ -64,7 +66,7 @@ export default async function AdminReviewsPage({
       <AdminPageHeader
         breadcrumb={[{ label: "Quản trị", href: "/admin" }, { label: "Đánh giá" }]}
         title="Kiểm duyệt đánh giá"
-        description="Duyệt, ẩn hoặc phản hồi đánh giá của khách. Hiện chưa có form gửi đánh giá công khai nên danh sách chỉ có dữ liệu nhập tay/API riêng."
+        description="Duyệt, ẩn hoặc phản hồi đánh giá của khách. Đánh giá đến từ trang tra cứu đơn (đơn đã hoàn thành, có huy hiệu “đã đi tour”) hoặc đánh giá chung; mọi đánh giá đều phải duyệt trước khi hiển thị."
         actions={<span className="text-[13px] text-sage">{total} đánh giá</span>}
       />
 

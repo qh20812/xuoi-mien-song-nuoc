@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityAction } from "@/lib/auth/session";
 import { isAppError } from "@/server/errors";
 import { updateBookingSettings } from "@/server/settings/update-booking-settings";
 
@@ -21,7 +21,7 @@ const settingsSchema = z.object({
 });
 
 export async function saveBookingSettingsAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/settings");
+  const admin = await requireCapabilityAction("settings:write", "/admin/settings");
 
   let target: string;
   try {

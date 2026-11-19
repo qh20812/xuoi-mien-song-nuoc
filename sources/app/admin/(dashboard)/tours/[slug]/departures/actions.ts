@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityAction } from "@/lib/auth/session";
 import {
   createDeparture,
   deleteDeparture,
@@ -82,7 +82,7 @@ function errorMessage(error: unknown): string {
 }
 
 export async function createDepartureAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/tours");
+  const admin = await requireCapabilityAction("catalog:write", "/admin/tours");
 
   const slug = slugSchema.safeParse(formData.get("tourSlug"));
   if (!slug.success) redirect("/admin/tours");
@@ -100,7 +100,7 @@ export async function createDepartureAction(formData: FormData) {
 }
 
 export async function updateDepartureAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/tours");
+  const admin = await requireCapabilityAction("catalog:write", "/admin/tours");
 
   const slug = slugSchema.safeParse(formData.get("tourSlug"));
   const id = idSchema.safeParse(formData.get("departureId"));
@@ -120,7 +120,7 @@ export async function updateDepartureAction(formData: FormData) {
 }
 
 export async function setDepartureStatusAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/tours");
+  const admin = await requireCapabilityAction("catalog:write", "/admin/tours");
 
   const slug = slugSchema.safeParse(formData.get("tourSlug"));
   const id = idSchema.safeParse(formData.get("departureId"));
@@ -143,7 +143,7 @@ export async function setDepartureStatusAction(formData: FormData) {
 }
 
 export async function deleteDepartureAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/tours");
+  const admin = await requireCapabilityAction("catalog:write", "/admin/tours");
 
   const slug = slugSchema.safeParse(formData.get("tourSlug"));
   const id = idSchema.safeParse(formData.get("departureId"));

@@ -13,6 +13,7 @@ import {
 import { CancelOrderDialog } from "@/components/lookup/cancel-order-dialog";
 import { LookupForm } from "@/components/lookup/lookup-form";
 import { LookupResult } from "@/components/lookup/lookup-result";
+import { ReviewForm } from "@/components/reviews/review-form";
 import { normalizePhone } from "@/lib/booking/validation";
 import type { OrderLookupInput, PublicOrder } from "@/lib/contracts/order";
 import type { SiteSettings } from "@/lib/contracts/site";
@@ -232,6 +233,14 @@ export function OrderLookup({ settings }: OrderLookupProps) {
             }}
           />
         </div>
+      ) : null}
+
+      {!loading && order && order.status === "completed" && credentials ? (
+        <ReviewForm
+          orderCode={order.code}
+          phone={credentials.phone}
+          defaultName={order.contactName}
+        />
       ) : null}
 
       {!loading && !order ? (

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AccessDenied } from "@/components/admin/access-denied";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityPage } from "@/lib/auth/session";
 import { formatDateVN, formatVndDisplay } from "@/lib/format";
 import {
   DEPARTURE_STATUS_LABEL,
@@ -48,7 +49,8 @@ export default async function AdminTourDeparturesPage({
   searchParams: Promise<{ error?: string; ok?: string }>;
 }) {
   const { slug } = await params;
-  await requireAdminPage(`/admin/tours/${slug}/departures`);
+  const admin = await requireCapabilityPage("catalog:write", `/admin/tours/${slug}/departures`);
+  if (!admin) return <AccessDenied />;
 
   const query = await searchParams;
 

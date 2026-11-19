@@ -1,6 +1,7 @@
 import Image from "next/image";
+import { AccessDenied } from "@/components/admin/access-denied";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityPage } from "@/lib/auth/session";
 import {
   MEDIA_TYPES,
   MEDIA_TYPE_LABEL,
@@ -29,7 +30,8 @@ export default async function AdminMediaPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
-  await requireAdminPage("/admin/media");
+  const admin = await requireCapabilityPage("content:write", "/admin/media");
+  if (!admin) return <AccessDenied title="Không có quyền quản lý thư viện ảnh" />;
 
   const query = await searchParams;
   const media = await listAdminMedia();

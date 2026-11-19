@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { z } from "zod";
-import { requireAdminApi } from "@/lib/auth/session";
+import { requireCapabilityApi } from "@/lib/auth/session";
 import { handleApiError, jsonResponse, readJsonLimited } from "@/lib/http";
 import {
   getAdminOrderById,
@@ -30,7 +30,7 @@ export async function GET(
 ) {
   await connection();
   try {
-    await requireAdminApi();
+    await requireCapabilityApi("orders:read");
     const { id } = await context.params;
     const order = await getAdminOrderById(parseId(id));
     return jsonResponse({ ok: true, order });
@@ -44,7 +44,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const admin = await requireAdminApi();
+    const admin = await requireCapabilityApi("orders:write");
     const { id } = await context.params;
     const orderId = parseId(id);
     const body = patchSchema.parse(await readJsonLimited(request));

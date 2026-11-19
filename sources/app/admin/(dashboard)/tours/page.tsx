@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { AccessDenied } from "@/components/admin/access-denied";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityPage } from "@/lib/auth/session";
 import { formatDateVN, formatVndDisplay } from "@/lib/format";
 import { listAdminTours } from "@/server/catalog/admin-departures";
 
@@ -15,7 +16,8 @@ const TOUR_STATUS_LABEL: Record<string, string> = {
 };
 
 export default async function AdminToursPage() {
-  await requireAdminPage("/admin/tours");
+  const admin = await requireCapabilityPage("catalog:write", "/admin/tours");
+  if (!admin) return <AccessDenied />;
 
   const tours = await listAdminTours();
 

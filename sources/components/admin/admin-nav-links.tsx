@@ -12,6 +12,7 @@ import {
   Star,
   Users,
 } from "lucide-react";
+import type { Capability } from "@/server/auth/permissions";
 import { cn } from "@/lib/utils";
 
 type AdminLink = {
@@ -19,31 +20,81 @@ type AdminLink = {
   label: string;
   icon: typeof LayoutDashboard;
   exact: boolean;
-  /** Chỉ role owner mới thấy mục này. */
-  ownerOnly?: boolean;
+  /** Quyền cần có để thấy mục này. Không khai báo = ai đăng nhập cũng thấy. */
+  capability?: Capability;
 };
 
 const ADMIN_LINKS: AdminLink[] = [
-  { href: "/admin", label: "Tổng quan", icon: LayoutDashboard, exact: true },
-  { href: "/admin/orders", label: "Đơn hàng", icon: ClipboardList, exact: false },
-  { href: "/admin/messages", label: "Hộp thư", icon: Inbox, exact: false },
-  { href: "/admin/tours", label: "Tour & chuyến", icon: CalendarDays, exact: false },
-  { href: "/admin/media", label: "Thư viện ảnh", icon: Images, exact: false },
-  { href: "/admin/reviews", label: "Đánh giá", icon: Star, exact: false },
-  { href: "/admin/users", label: "Tài khoản", icon: Users, exact: false, ownerOnly: true },
-  { href: "/admin/settings", label: "Cấu hình", icon: Settings, exact: false },
+  {
+    href: "/admin",
+    label: "Tổng quan",
+    icon: LayoutDashboard,
+    exact: true,
+    capability: "orders:read",
+  },
+  {
+    href: "/admin/orders",
+    label: "Đơn hàng",
+    icon: ClipboardList,
+    exact: false,
+    capability: "orders:read",
+  },
+  {
+    href: "/admin/messages",
+    label: "Hộp thư",
+    icon: Inbox,
+    exact: false,
+    capability: "messages:read",
+  },
+  {
+    href: "/admin/tours",
+    label: "Tour & chuyến",
+    icon: CalendarDays,
+    exact: false,
+    capability: "catalog:write",
+  },
+  {
+    href: "/admin/media",
+    label: "Thư viện ảnh",
+    icon: Images,
+    exact: false,
+    capability: "content:write",
+  },
+  {
+    href: "/admin/reviews",
+    label: "Đánh giá",
+    icon: Star,
+    exact: false,
+    capability: "content:write",
+  },
+  {
+    href: "/admin/users",
+    label: "Tài khoản",
+    icon: Users,
+    exact: false,
+    capability: "users:manage",
+  },
+  {
+    href: "/admin/settings",
+    label: "Cấu hình",
+    icon: Settings,
+    exact: false,
+    capability: "settings:write",
+  },
 ];
 
 type AdminNavLinksProps = {
   /** Gọi sau khi điều hướng, dùng để đóng drawer mobile. */
   onNavigate?: () => void;
-  /** Role của admin đang đăng nhập — ẩn mục `ownerOnly` với role khác. */
-  role?: string;
+  /** Quyền của admin đang đăng nhập — mục thiếu quyền sẽ bị ẩn. */
+  capabilities: readonly string[];
 };
 
-export function AdminNavLinks({ onNavigate, role }: AdminNavLinksProps) {
+export function AdminNavLinks({ onNavigate, capabilities }: AdminNavLinksProps) {
   const pathname = usePathname();
-  const links = ADMIN_LINKS.filter((link) => !link.ownerOnly || role === "owner");
+  const links = ADMIN_LINKS.filter(
+    (link) => !link.capability || capabilities.includes(link.capability),
+  );
 
   return (
     <nav aria-label="Điều hướng quản trị" className="flex flex-col gap-1 px-3">

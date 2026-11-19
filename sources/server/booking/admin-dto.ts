@@ -13,6 +13,7 @@ export type AdminOrderForDto = Prisma.OrderGetPayload<{
     departure: true;
     passengers: true;
     statusHistory: true;
+    assignedAdmin: { select: { id: true; name: true; email: true } };
   };
 }>;
 
@@ -26,6 +27,13 @@ export function toAdminOrderDto(order: AdminOrderForDto, settings: BookingSettin
     email: order.email,
     source: order.source,
     adminNote: order.adminNote,
+    assignedAdmin: order.assignedAdmin
+      ? {
+          id: order.assignedAdmin.id,
+          name: order.assignedAdmin.name,
+          email: order.assignedAdmin.email,
+        }
+      : null,
     clientRequestId: order.clientRequestId,
     tourId: order.tourId,
     departureId: order.departureId,
@@ -50,6 +58,7 @@ export type AdminOrderSummaryInput = Prisma.OrderGetPayload<{
   include: {
     tour: { select: { code: true; name: true } };
     departure: { select: { departureDate: true; returnDate: true } };
+    assignedAdmin: { select: { id: true; name: true } };
   };
 }>;
 
@@ -65,6 +74,9 @@ export function toAdminOrderSummary(order: AdminOrderSummaryInput) {
     guests: { adults: order.adults, children: order.children, infants: order.infants, seats },
     totalAmount: order.totalAmount,
     tour: { code: order.tour.code, name: order.tour.name },
+    assignee: order.assignedAdmin
+      ? { id: order.assignedAdmin.id, name: order.assignedAdmin.name }
+      : null,
     departure: {
       date: dateOnly(order.departure.departureDate),
       returnDate: order.departure.returnDate ? dateOnly(order.departure.returnDate) : null,

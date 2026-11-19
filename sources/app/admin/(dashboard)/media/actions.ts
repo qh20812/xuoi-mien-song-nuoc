@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityAction } from "@/lib/auth/session";
 import {
   createMedia,
   deleteMedia,
@@ -49,7 +49,7 @@ function toInput(data: z.infer<typeof mediaSchema>, isActive: boolean): MediaInp
 }
 
 export async function createMediaAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/media");
+  const admin = await requireCapabilityAction("content:write", "/admin/media");
 
   let target: string;
   try {
@@ -64,7 +64,7 @@ export async function createMediaAction(formData: FormData) {
 }
 
 export async function updateMediaAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/media");
+  const admin = await requireCapabilityAction("content:write", "/admin/media");
 
   let target: string;
   try {
@@ -80,7 +80,7 @@ export async function updateMediaAction(formData: FormData) {
 }
 
 export async function deleteMediaAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/media");
+  const admin = await requireCapabilityAction("content:write", "/admin/media");
 
   let target: string;
   try {

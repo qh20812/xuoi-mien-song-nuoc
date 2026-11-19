@@ -8,11 +8,12 @@ import logo from "@/public/logo-xuoi-mien-song-nuoc.png";
 import { AdminNavLinks } from "@/components/admin/admin-nav-links";
 
 type AdminMobileNavProps = {
-  admin: { name: string; email: string; role: string };
+  admin: { name: string; email: string };
+  capabilities: readonly string[];
   logoutAction: () => Promise<void>;
 };
 
-export function AdminMobileNav({ admin, logoutAction }: AdminMobileNavProps) {
+export function AdminMobileNav({ admin, capabilities, logoutAction }: AdminMobileNavProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -111,7 +112,10 @@ export function AdminMobileNav({ admin, logoutAction }: AdminMobileNavProps) {
               </button>
             </div>
 
-            <AdminNavLinks role={admin.role} onNavigate={() => setOpen(false)} />
+            <AdminNavLinks
+              capabilities={capabilities}
+              onNavigate={() => setOpen(false)}
+            />
 
             <div className="mt-auto border-t border-contrast-on-accent/10 px-5 py-4">
               <p className="text-[10px] font-semibold tracking-[0.16em] text-contrast-on-accent/60 uppercase">

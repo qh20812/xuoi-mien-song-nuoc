@@ -20,11 +20,23 @@ export type ListAdminOrdersInput = {
   q?: string;
   page?: number;
   pageSize?: number;
+  /** `me` = đơn giao cho chính người đang xem; `unassigned` = chưa giao ai. */
+  assignee?: AdminOrderAssignee;
+  /** Bắt buộc khi `assignee === "me"`. */
+  viewerId?: number;
 };
+
+export type AdminOrderAssignee = "me" | "unassigned";
+
+export function isAdminOrderAssignee(value: unknown): value is AdminOrderAssignee {
+  return value === "me" || value === "unassigned";
+}
 
 function buildOrderWhere(
   status?: AdminOrderStatus,
   q?: string,
+  assignee?: AdminOrderAssignee,
+  viewerId?: number,
 ): Prisma.OrderWhereInput {
   const where: Prisma.OrderWhereInput = {};
   if (status) where.status = status;
@@ -35,6 +47,11 @@ function buildOrderWhere(
       { contactName: { contains: q } },
     ];
   }
+  if (assignee === "unassigned") {
+    where.assignedAdminId = null;
+  } else if (assignee === "me" && typeof viewerId === "number") {
+    where.assignedAdminId = viewerId;
+  }
   return where;
 }
 
@@ -43,7 +60,7 @@ export async function listAdminOrders(input: ListAdminOrdersInput = {}) {
   const pageSize = Math.min(100, Math.max(1, Math.trunc(input.pageSize ?? 20)));
   const q = input.q?.trim();
 
-  const where = buildOrderWhere(input.status, q);
+  const where = buildOrderWhere(input.status, q, input.assignee, input.viewerId);
 
   const [total, orders] = await Promise.all([
     prisma.order.count({ where }),
@@ -55,6 +72,7 @@ export async function listAdminOrders(input: ListAdminOrdersInput = {}) {
       include: {
         tour: { select: { code: true, name: true } },
         departure: { select: { departureDate: true, returnDate: true } },
+        assignedAdmin: { select: { id: true, name: true } },
       },
     }),
   ]);
@@ -88,12 +106,18 @@ export type AdminOrderExportRow = {
 };
 
 export async function listAdminOrdersForExport(
-  input: { status?: AdminOrderStatus; q?: string; limit?: number } = {},
+  input: {
+    status?: AdminOrderStatus;
+    q?: string;
+    assignee?: AdminOrderAssignee;
+    viewerId?: number;
+    limit?: number;
+  } = {},
 ): Promise<AdminOrderExportRow[]> {
   const limit = Math.min(5000, Math.max(1, Math.trunc(input.limit ?? 5000)));
 
   const orders = await prisma.order.findMany({
-    where: buildOrderWhere(input.status, input.q?.trim()),
+    where: buildOrderWhere(input.status, input.q?.trim(), input.assignee, input.viewerId),
     orderBy: { createdAt: "desc" },
     take: limit,
     include: {
@@ -119,7 +143,8 @@ export async function listAdminOrdersForExport(
   }));
 }
 
-export async function countOrdersByStatus(): Promise<Record<string, number>> {  const rows = await prisma.order.groupBy({
+export async function countOrdersByStatus(): Promise<Record<string, number>> {
+  const rows = await prisma.order.groupBy({
     by: ["status"],
     _count: { _all: true },
   });

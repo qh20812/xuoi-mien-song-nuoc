@@ -1,6 +1,6 @@
 import { AccessDenied } from "@/components/admin/access-denied";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityPage } from "@/lib/auth/session";
 import { formatDateVN } from "@/lib/format";
 import {
   ADMIN_ROLES,
@@ -38,9 +38,9 @@ export default async function AdminUsersPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
-  const admin = await requireAdminPage("/admin/users");
+  const admin = await requireCapabilityPage("users:manage", "/admin/users");
 
-  if (admin.role !== "owner") {
+  if (!admin) {
     return (
       <AccessDenied
         title="Chỉ chủ sở hữu quản lý được tài khoản"

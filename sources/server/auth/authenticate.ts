@@ -12,6 +12,7 @@ export type AuthenticatedAdmin = {
   email: string;
   name: string;
   role: string;
+  tokenVersion: number;
 };
 
 export async function authenticateAdmin(
@@ -27,6 +28,7 @@ export async function authenticateAdmin(
       role: true,
       isActive: true,
       passwordHash: true,
+      tokenVersion: true,
     },
   });
 
@@ -37,5 +39,11 @@ export async function authenticateAdmin(
     .update({ where: { id: admin.id }, data: { lastLoginAt: new Date() } })
     .catch((error) => console.error("[admin login] lastLoginAt", error));
 
-  return { id: admin.id, email: admin.email, name: admin.name, role: admin.role };
+  return {
+    id: admin.id,
+    email: admin.email,
+    name: admin.name,
+    role: admin.role,
+    tokenVersion: admin.tokenVersion,
+  };
 }

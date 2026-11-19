@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityAction } from "@/lib/auth/session";
 import {
   isAdminTourStatus,
   setTourStatus,
@@ -53,7 +53,7 @@ function path(slug: string, query?: Record<string, string>): string {
 }
 
 export async function updateTourContentAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/tours");
+  const admin = await requireCapabilityAction("catalog:write", "/admin/tours");
   const slug = String(formData.get("slug") ?? "");
   if (!slug) redirect("/admin/tours");
 
@@ -90,7 +90,7 @@ export async function updateTourContentAction(formData: FormData) {
 }
 
 export async function setTourStatusAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/tours");
+  const admin = await requireCapabilityAction("catalog:write", "/admin/tours");
   const slug = String(formData.get("slug") ?? "");
   const status = formData.get("status");
   if (!slug) redirect("/admin/tours");

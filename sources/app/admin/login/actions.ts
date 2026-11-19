@@ -46,6 +46,7 @@ export async function loginAction(
     id: admin.id,
     email: admin.email,
     role: admin.role,
+    tokenVersion: admin.tokenVersion,
   });
   (await cookies()).set(ADMIN_COOKIE, token, adminCookieOptions());
 

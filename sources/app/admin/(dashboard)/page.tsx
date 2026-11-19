@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { AccessDenied } from "@/components/admin/access-denied";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { HoldExpiredLabel, StatusBadge } from "@/components/admin/status-badge";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityPage } from "@/lib/auth/session";
 import { formatDateVN, formatVndDisplay } from "@/lib/format";
 import { countOrdersByStatus, listAdminOrders } from "@/server/booking/admin-queries";
 import { getSiteSettings } from "@/server/settings/get-site-settings";
@@ -18,8 +19,15 @@ const KPI_CARDS = [
   { status: "cancelled", label: "Đã huỷ" },
 ] as const;
 
-export default async function AdminDashboardPage() {
-  await requireAdminPage("/admin");
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ denied?: string }>;
+}) {
+  const admin = await requireCapabilityPage("orders:read", "/admin");
+  if (!admin) return <AccessDenied />;
+
+  const { denied } = await searchParams;
 
   const [counts, recent, settings] = await Promise.all([
     countOrdersByStatus(),
@@ -37,6 +45,15 @@ export default async function AdminDashboardPage() {
         title="Tổng quan đơn đặt chỗ"
         description={`Tổng ${total} đơn. Đơn giữ chỗ tự hết hạn sau ${settings.booking.holdHours} giờ nếu chưa xác nhận.`}
       />
+
+      {denied ? (
+        <p
+          role="alert"
+          className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-[13px] text-danger"
+        >
+          Tài khoản của bạn không có quyền thực hiện thao tác vừa rồi.
+        </p>
+      ) : null}
 
       <section aria-label="Số liệu theo trạng thái" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {KPI_CARDS.map((card) => {

@@ -11,6 +11,11 @@ export type AdminTokenClaims = {
   id: number;
   email: string;
   role: string;
+  /**
+   * Khớp `admin_users.token_version`. Tăng số này trong DB là mọi JWT cũ mất
+   * hiệu lực — dùng khi đổi mật khẩu hoặc khoá tài khoản.
+   */
+  tokenVersion: number;
 };
 
 function secretKey(): Uint8Array | null {
@@ -31,7 +36,11 @@ export async function signAdminToken(claims: AdminTokenClaims): Promise<string> 
   const key = assertAuthSecret();
   const now = Math.floor(Date.now() / 1000);
 
-  return new SignJWT({ email: claims.email, role: claims.role })
+  return new SignJWT({
+    email: claims.email,
+    role: claims.role,
+    tv: claims.tokenVersion,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(String(claims.id))
     .setIssuedAt(now)
@@ -50,7 +59,12 @@ export async function verifyAdminToken(
     const id = Number(payload.sub);
     if (!Number.isInteger(id) || id <= 0) return null;
     if (typeof payload.email !== "string" || typeof payload.role !== "string") return null;
-    return { id, email: payload.email, role: payload.role };
+
+    // Token phát hành trước D7 không có `tv` ⇒ coi như phiên bản 0.
+    const tokenVersion = Number(payload.tv ?? 0);
+    if (!Number.isInteger(tokenVersion) || tokenVersion < 0) return null;
+
+    return { id, email: payload.email, role: payload.role, tokenVersion };
   } catch {
     return null;
   }

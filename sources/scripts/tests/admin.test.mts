@@ -107,9 +107,19 @@ after(async () => {
 });
 
 test("token admin: ký và xác thực, chống token bị sửa", async () => {
-  const token = await signAdminToken({ id: adminId, email: TEST_EMAIL, role: "admin" });
+  const token = await signAdminToken({
+    id: adminId,
+    email: TEST_EMAIL,
+    role: "admin",
+    tokenVersion: 0,
+  });
   const claims = await verifyAdminToken(token);
-  assert.deepEqual(claims, { id: adminId, email: TEST_EMAIL, role: "admin" });
+  assert.deepEqual(claims, {
+    id: adminId,
+    email: TEST_EMAIL,
+    role: "admin",
+    tokenVersion: 0,
+  });
 
   const tampered = `${token.slice(0, -2)}xx`;
   assert.equal(await verifyAdminToken(tampered), null);
@@ -159,7 +169,12 @@ test("proxy chặn /admin khi thiếu phiên và mở cổng /admin/login", asyn
   const loginPage = await proxy(new NextRequest("http://localhost/admin/login"));
   assert.equal(loginPage.status, 200);
 
-  const token = await signAdminToken({ id: adminId, email: TEST_EMAIL, role: "admin" });
+  const token = await signAdminToken({
+    id: adminId,
+    email: TEST_EMAIL,
+    role: "admin",
+    tokenVersion: 0,
+  });
   const withCookie = await proxy(
     new NextRequest("http://localhost/admin", {
       headers: { cookie: `${ADMIN_COOKIE}=${token}` },

@@ -364,6 +364,7 @@ model Order {
   confirmedBy    Int?        @map("confirmed_by") // admin id
   ipHash         String?     @map("ip_hash") @db.Char(64)
   userAgent      String?     @map("user_agent") @db.VarChar(500)
+  assignedAdminId Int?       @map("assigned_admin_id")
   createdAt      DateTime    @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt      DateTime    @updatedAt @map("updated_at") @db.DateTime(3)
 
@@ -372,12 +373,14 @@ model Order {
   passengers    OrderPassenger[]
   statusHistory OrderStatusHistory[]
   review        Review?
+  assignedAdmin AdminUser?           @relation("OrderAssignee", fields: [assignedAdminId], references: [id], onDelete: SetNull)
 
   @@index([phone])
   @@index([status, createdAt])
   @@index([status, holdExpiresAt])
   @@index([departureId, status])
   @@index([tourId, createdAt])
+  @@index([assignedAdminId, status])
   @@map("orders")
 }
 
@@ -482,11 +485,14 @@ model AdminUser {
   name         String    @db.VarChar(120)
   role         AdminRole @default(admin)
   isActive     Boolean   @default(true) @map("is_active")
+  /** Tăng mỗi khi đổi mật khẩu/khoá tài khoản → mọi JWT cũ mất hiệu lực. */
+  tokenVersion Int       @default(0) @map("token_version")
   lastLoginAt  DateTime? @map("last_login_at") @db.DateTime(3)
   createdAt    DateTime  @default(now()) @map("created_at") @db.DateTime(3)
 
-  posts  Post[]
-  audits AdminAuditLog[]
+  posts          Post[]
+  audits         AdminAuditLog[]
+  assignedOrders Order[]         @relation("OrderAssignee")
 
   @@map("admin_users")
 }

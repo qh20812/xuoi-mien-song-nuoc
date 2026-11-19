@@ -1,5 +1,6 @@
+import { AccessDenied } from "@/components/admin/access-denied";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityPage } from "@/lib/auth/session";
 import { siteSettings } from "@/lib/fixtures/site";
 import { getBookingSettings } from "@/server/settings/get-booking-settings";
 import { saveBookingSettingsAction } from "./actions";
@@ -52,7 +53,8 @@ export default async function AdminSettingsPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
-  await requireAdminPage("/admin/settings");
+  const admin = await requireCapabilityPage("settings:write", "/admin/settings");
+  if (!admin) return <AccessDenied title="Chỉ quản trị viên đổi được cấu hình" />;
 
   const query = await searchParams;
   const settings = await getBookingSettings();

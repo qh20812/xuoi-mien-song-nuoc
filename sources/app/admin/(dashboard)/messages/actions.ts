@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityAction } from "@/lib/auth/session";
 import {
   deleteContactMessage,
   isAdminContactStatus,
@@ -19,7 +19,7 @@ function safeReturnTo(formData: FormData): string {
 }
 
 export async function setContactStatusAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/messages");
+  const admin = await requireCapabilityAction("messages:write", "/admin/messages");
   const returnTo = safeReturnTo(formData);
 
   const id = idSchema.safeParse(formData.get("messageId"));
@@ -44,7 +44,7 @@ export async function setContactStatusAction(formData: FormData) {
 }
 
 export async function deleteContactMessageAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/messages");
+  const admin = await requireCapabilityAction("messages:write", "/admin/messages");
   const returnTo = safeReturnTo(formData);
 
   const id = idSchema.safeParse(formData.get("messageId"));

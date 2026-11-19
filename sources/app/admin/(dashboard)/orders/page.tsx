@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
+import { AccessDenied } from "@/components/admin/access-denied";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { HoldExpiredLabel, StatusBadge } from "@/components/admin/status-badge";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityPage } from "@/lib/auth/session";
+import { can } from "@/server/auth/permissions";
 import { statusLabel } from "@/lib/booking/status-labels";
 import { formatDateVN, formatDateTimeVN, formatVndDisplay } from "@/lib/format";
 import {
   ADMIN_ORDER_STATUSES,
+  isAdminOrderAssignee,
   isAdminOrderStatus,
   listAdminOrders,
 } from "@/server/booking/admin-queries";
@@ -16,12 +19,13 @@ export const metadata = {
 };
 
 function buildHref(
-  filters: { status?: string; q?: string },
+  filters: { status?: string; q?: string; assignee?: string },
   page: number,
 ): string {
   const search = new URLSearchParams();
   if (filters.status) search.set("status", filters.status);
   if (filters.q) search.set("q", filters.q);
+  if (filters.assignee) search.set("assignee", filters.assignee);
   if (page > 1) search.set("page", String(page));
   const query = search.toString();
   return query ? `/admin/orders?${query}` : "/admin/orders";
@@ -33,22 +37,33 @@ const fieldClass =
 export default async function AdminOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string; assignee?: string }>;
 }) {
-  await requireAdminPage("/admin/orders");
+  const admin = await requireCapabilityPage("orders:read", "/admin/orders");
+  if (!admin) return <AccessDenied />;
+
+  const canExport = can(admin.role, "orders:export");
 
   const params = await searchParams;
   const status = isAdminOrderStatus(params.status) ? params.status : undefined;
   const q = typeof params.q === "string" ? params.q.trim() : undefined;
+  const assignee = isAdminOrderAssignee(params.assignee) ? params.assignee : undefined;
   const page = Math.max(1, Number(params.page) || 1);
 
-  const result = await listAdminOrders({ status, q, page });
-  const filters = { status, q };
-  const hasFilter = Boolean(status || q);
+  const result = await listAdminOrders({
+    status,
+    q,
+    page,
+    assignee,
+    viewerId: admin.id,
+  });
+  const filters = { status, q, assignee };
+  const hasFilter = Boolean(status || q || assignee);
 
   const exportQuery = new URLSearchParams({
     ...(status ? { status } : {}),
     ...(q ? { q } : {}),
+    ...(assignee ? { assignee } : {}),
   }).toString();
 
   return (
@@ -59,12 +74,14 @@ export default async function AdminOrdersPage({
         actions={
           <div className="flex items-center gap-3">
             <span className="text-[13px] text-sage">{result.pagination.total} đơn</span>
-            <a
-              href={`/api/admin/orders/export${exportQuery ? `?${exportQuery}` : ""}`}
-              className="inline-flex h-10 items-center rounded-[10px] border border-line px-4 text-[13px] font-semibold text-ink transition-colors hover:border-clay hover:text-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
-            >
-              Xuất CSV
-            </a>
+            {canExport ? (
+              <a
+                href={`/api/admin/orders/export${exportQuery ? `?${exportQuery}` : ""}`}
+                className="inline-flex h-10 items-center rounded-[10px] border border-line px-4 text-[13px] font-semibold text-ink transition-colors hover:border-clay hover:text-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
+              >
+                Xuất CSV
+              </a>
+            ) : null}
           </div>
         }
       />
@@ -109,6 +126,22 @@ export default async function AdminOrdersPage({
               className={`${fieldClass} w-full pr-3 pl-9`}
             />
           </div>
+        </div>
+
+        <div className="flex w-full flex-col gap-1.5 md:w-[190px] md:shrink-0">
+          <label htmlFor="filter-assignee" className="text-[12px] font-semibold text-sage">
+            Phân công
+          </label>
+          <select
+            id="filter-assignee"
+            name="assignee"
+            defaultValue={assignee ?? ""}
+            className={`${fieldClass} px-3`}
+          >
+            <option value="">Tất cả</option>
+            <option value="me">Của tôi</option>
+            <option value="unassigned">Chưa giao</option>
+          </select>
         </div>
 
         <div className="flex items-center gap-3">

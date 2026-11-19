@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { AccessDenied } from "@/components/admin/access-denied";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityPage } from "@/lib/auth/session";
 import { formatDateTimeVN } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -33,7 +34,8 @@ export default async function AdminMessagesPage({
 }: {
   searchParams: Promise<{ status?: string; q?: string; page?: string; error?: string }>;
 }) {
-  await requireAdminPage("/admin/messages");
+  const admin = await requireCapabilityPage("messages:read", "/admin/messages");
+  if (!admin) return <AccessDenied title="Không có quyền xem hộp thư" />;
 
   const params = await searchParams;
   const status = isAdminContactStatus(params.status) ? params.status : undefined;

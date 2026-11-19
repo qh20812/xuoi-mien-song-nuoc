@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { z } from "zod";
-import { requireAdminApi } from "@/lib/auth/session";
+import { requireCapabilityApi } from "@/lib/auth/session";
 import { handleApiError, jsonResponse } from "@/lib/http";
 import {
   ADMIN_ORDER_STATUSES,
@@ -18,7 +18,7 @@ const querySchema = z.object({
 export async function GET(request: Request) {
   await connection();
   try {
-    await requireAdminApi();
+    await requireCapabilityApi("orders:read");
 
     const url = new URL(request.url);
     const query = querySchema.parse({

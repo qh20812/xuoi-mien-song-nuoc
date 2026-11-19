@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityAction } from "@/lib/auth/session";
 import {
   createAdminUser,
   deleteAdminUser,
@@ -43,11 +43,9 @@ function back(ok?: string, error?: unknown): string {
   return ok ? `/admin/users?ok=${ok}` : "/admin/users";
 }
 
-/** Mọi action dưới đây chỉ dành cho role owner. */
+/** Mọi action dưới đây chỉ dành cho người có quyền quản lý tài khoản. */
 async function requireOwner() {
-  const admin = await requireAdminPage("/admin/users");
-  if (admin.role !== "owner") redirect("/admin");
-  return admin;
+  return requireCapabilityAction("users:manage", "/admin/users");
 }
 
 export async function createAdminUserAction(formData: FormData) {

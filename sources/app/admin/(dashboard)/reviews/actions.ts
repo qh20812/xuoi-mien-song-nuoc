@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityAction } from "@/lib/auth/session";
 import { isAppError } from "@/server/errors";
 import {
   deleteReview,
@@ -29,7 +29,7 @@ function back(ok?: string, error?: unknown): string {
 }
 
 export async function setReviewStatusAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/reviews");
+  const admin = await requireCapabilityAction("content:write", "/admin/reviews");
   const status = formData.get("status");
 
   let target: string;
@@ -48,7 +48,7 @@ export async function setReviewStatusAction(formData: FormData) {
 }
 
 export async function toggleReviewFeaturedAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/reviews");
+  const admin = await requireCapabilityAction("content:write", "/admin/reviews");
 
   let target: string;
   try {
@@ -64,7 +64,7 @@ export async function toggleReviewFeaturedAction(formData: FormData) {
 }
 
 export async function setReviewReplyAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/reviews");
+  const admin = await requireCapabilityAction("content:write", "/admin/reviews");
 
   let target: string;
   try {
@@ -80,7 +80,7 @@ export async function setReviewReplyAction(formData: FormData) {
 }
 
 export async function deleteReviewAction(formData: FormData) {
-  const admin = await requireAdminPage("/admin/reviews");
+  const admin = await requireCapabilityAction("content:write", "/admin/reviews");
 
   let target: string;
   try {

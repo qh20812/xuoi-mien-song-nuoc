@@ -229,6 +229,8 @@ export async function updateAdminUser(
         name: input.name.trim(),
         role: input.role,
         isActive: input.isActive,
+        // Khoá tài khoản ⇒ vô hiệu hoá mọi phiên đang mở của người đó.
+        ...(input.isActive ? {} : { tokenVersion: { increment: 1 } }),
       },
       select: {
         id: true,
@@ -273,7 +275,10 @@ export async function resetAdminPassword(
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.adminUser.update({ where: { id: targetId }, data: { passwordHash } });
+    await tx.adminUser.update({
+      where: { id: targetId },
+      data: { passwordHash, tokenVersion: { increment: 1 } },
+    });
     await tx.adminAuditLog.create({
       data: {
         adminId: actorId,

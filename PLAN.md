@@ -526,12 +526,13 @@ npm run test:coverage        # gate rộng cho backend (T4)
 ```
 
 - `test:coverage:unit`: include `lib/format|time|settings|api/client|validation/*|booking/preview|auth/next-path` +
-  `server/catalog/is-bookable.ts`; ngưỡng **lines 90 / branches 85 / functions 90**.
+  `server/catalog/is-bookable.ts`; ngưỡng **lines 96 / branches 92 / functions 93**.
   Chỉ `is-bookable.ts` được include từ `server/catalog/` vì 3 file còn lại cần DB, không phải unit test.
 - `test:coverage`: include `server/**`, `lib/**`, `app/api/**`, loại trừ `lib/fixtures/**` và
-  `lib/contracts/**`; ngưỡng khoá cuối cùng **lines 72 / branches 88 / functions 92**
+  `lib/contracts/**`; ngưỡng khoá cuối cùng **lines 80 / branches 88 / functions 92**
   (ratchet: T0 51.54/86.19/88.07 → T1 62.34/89.73/92.53 → T2 72.14/89.99/94.25 →
-  T3+T4 **74.31/90.24/94.56**). Script đã gộp đủ 10 suite, chạy được từ T2.
+  T3+T4 74.31/90.24/94.56 → **D8 82.12/88.22/94.09**). Script đã gộp đủ 12 suite/glob,
+  chạy được từ T2.
 
 **Loại trừ khỏi gate:** `lib/fixtures/**` (dữ liệu tĩnh), `lib/contracts/**` (chỉ type),
 `components/**`, `app/(site)/**`, `app/admin/**`.
@@ -635,10 +636,16 @@ B0 ──▶ B1 ──▶ B2 ──▶ B3
 - [x] **D3** Hộp thư liên hệ + tài khoản quản trị
 - [x] **D4** Nội dung tour + thư viện media
 - [x] **D5** Kiểm duyệt đánh giá + xuất CSV đơn
-- [ ] **D6** Phân quyền theo vai trò (owner / admin / editor) — **ưu tiên 1**
-- [ ] **D7** Ghi chú nội bộ + phân công đơn (cần migration)
-- [ ] **D8** Kênh khách gửi đánh giá
+- [x] **D6** Phân quyền theo vai trò (owner / admin / editor)
+- [x] **D7** Ghi chú nội bộ + phân công đơn (+ `tokenVersion`)
+- [x] **D8** Kênh khách gửi đánh giá
 - [ ] **D9** Public đọc DB + CRUD điểm đến/bài viết/món ăn/FAQ
+  - [ ] **D9.1** Schema/migration/seed/mapper thuần (`Post.topic`, `relatedTourCodes`, `checklist`, `isFeatured`; `Faq.placement`)
+  - [ ] **D9.2** Điểm đến — loader + `/diem-den/[slug]` + admin CRUD + cache
+  - [ ] **D9.3** Bài viết — loader + admin CRUD + featured theo DB
+  - [ ] **D9.4** Món ăn — loader + admin CRUD + home/tour detail
+  - [ ] **D9.5** FAQ — loader + admin CRUD + home/liên hệ theo `placement`
+  - [ ] **D9.6** Xoá fixture domain + docs + ratchet coverage
 - [ ] **D10** Upload ảnh, màn audit log, badge tin mới
 
 ### Điều kiện chặn
@@ -1055,9 +1062,9 @@ mọi page/action đều có `requireAdminPage` (trừ login/logout), mọi API 
 ```
 npx tsc --noEmit            → 0 lỗi
 npm run lint                → 0 error, 0 warning
-npm run build               → 50 route
-npm test                    → 144/144
-npm run test:coverage       → exit 0 (all files ≈ 81.2 / 88.3 / 92.8; gate 72 / 88 / 92)
+npm run build               → 51 route
+npm test                    → 171/171
+npm run test:coverage       → exit 0 (all files ≈ 82.12 / 88.22 / 94.09; gate 80 / 88 / 92)
 ```
 
 **Không có API admin cho** departures / tours / media / reviews / settings / users — các
@@ -1237,7 +1244,7 @@ domain này chỉ có server action. Đủ cho UI hiện tại; nếu cần tíc
 
 ---
 
-### D6 · Phân quyền theo vai trò — **TODO (ưu tiên 1)**
+### D6 · Phân quyền theo vai trò — **đã xong**
 
 **Vấn đề:** `owner / admin / editor` hiện chỉ dùng ở `/admin/users`. Một `editor` vẫn sửa
 được **giá tour, chuyến, cấu hình booking** vì các trang đó chỉ kiểm tra "đã đăng nhập".
@@ -1281,18 +1288,41 @@ Song song thêm `requireCapabilityApi(cap)` ném `AppError("FORBIDDEN", …, 403
 route handler về sau.
 
 **Việc phụ nên gộp vào D6:** thêm `tokenVersion` vào `AdminUser` + JWT để **đổi mật khẩu/khoá
-tài khoản huỷ được phiên cũ** (đang là hạn chế ở D3). Cần migration → gộp chung đợt migrate
-với D7 để chỉ chạy một lần.
+tài khoản huỷ được phiên cũ** (đang là hạn chế ở D3). Cần migration → **dời sang D7** để chỉ
+chạy một đợt migrate duy nhất.
+
+> **Đã làm & kiểm chứng**
+>
+> - `server/auth/permissions.ts` — 10 capability × 3 vai trò, hàm thuần: `can`,
+>   `capabilitiesFor`, `isCapability`, `isAdminRoleValue`. Role lạ / `null` / `""` ⇒ **0 quyền**.
+> - `lib/auth/session.ts` — 3 helper theo đúng ngữ cảnh:
+>   `requireCapabilityPage` trả `null` để page render `<AccessDenied />` (không redirect ngầm);
+>   `requireCapabilityAction` redirect `/admin?denied=1`; `requireCapabilityApi` ném
+>   `AppError("FORBIDDEN", …, 403)`. `requireAdminApi` chuyển từ `BookingError` sang `AppError`
+>   cho đồng nhất.
+> - Gắn quyền cho **23 file** page/action/nav (gồm layout + 3 component menu) và **3 route API**
+>   (`GET /orders`, `GET|PATCH /orders/[id]`, `/orders/export`). Dashboard có băng cảnh báo
+>   khi bị chặn qua `?denied=1`.
+> - `scripts/tests/unit/permissions.test.ts` (6 case) khoá ma trận: owner đủ 10 capability;
+>   admin thiếu `users:manage` + `audit:read`; editor **không** có `catalog:write`,
+>   `orders:write`, `orders:export`, `settings:write`, `users:manage`.
+> - Kiểm chứng end-to-end trên **test DB** bằng tài khoản `editor` thật:
+>   menu ẩn "Tour & chuyến", "Tài khoản", "Cấu hình"; `/admin/tours`, `/admin/settings`,
+>   `/admin/users` render panel chặn và **không lộ form**; `GET /api/admin/orders/export` → **403
+>   FORBIDDEN**; `PATCH /api/admin/orders/1` → **403**. Với `owner`: export → 200 `text/csv`.
+> - Cổng: `tsc` ✅ · `lint` 0 warning · `build` **50 route** · `npm test` **150/150** ·
+>   `test:coverage` exit 0 (**80.8 / 88.5 / 92.9**; `permissions.ts` 98.75 / 96.55 / 93.75).
+> - **Chưa làm:** `tokenVersion` — dời sang D7 như ghi chú trên.
 
 ---
 
-### D7 · Ghi chú nội bộ + phân công đơn — **TODO (cần migration)**
+### D7 · Ghi chú nội bộ + phân công đơn — **đã xong**
 
 | | |
 |---|---|
 | **Mục tiêu** | Admin ghi chú nội bộ cho từng đơn và giao đơn cho một người phụ trách |
 | **Schema** | `Order.assignedAdminId Int? @map("assigned_admin_id")` + relation `assignedAdmin AdminUser?` (`onDelete: SetNull`) + `@@index([assignedAdminId, status])` |
-| **Migration** | `node scripts/with-db.mjs dev npx prisma migrate dev --name order_assignment` → `npm run db:migrate:test` (**không** dùng `npm run db:migrate` vì nó trỏ `DATABASE_URL` production) |
+| **Migration** | Sinh SQL bằng `node scripts/with-db.mjs dev npx prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script`, lưu vào `prisma/migrations/<ts>_order_assignment/migration.sql`, rồi `npm run db:migrate:dev` + `npm run db:migrate:test` (**không** dùng `npm run db:migrate` vì nó trỏ `DATABASE_URL` production) |
 | **Tạo mới** | `server/booking/admin-order-notes.ts` (`updateAdminNote`, `assignOrder`) |
 | **Sửa** | `server/booking/admin-dto.ts` (thêm `assignedAdmin`), `app/admin/(dashboard)/orders/[id]/page.tsx` (card "Nội bộ"), `app/admin/(dashboard)/orders/page.tsx` (filter `?assignee=me|unassigned`) |
 | **Bẫy** | `adminNote` đã có trong DB + DTO nhưng **chưa có UI** — chỉ cần render, không thêm cột. Còn `assignedAdminId` là cột mới |
@@ -1302,9 +1332,40 @@ với D7 để chỉ chạy một lần.
 > `order_status_history` (chỉ ghi `admin_audit_log`), vì lịch sử trạng thái phải phản ánh
 > đúng nghiệp vụ đơn, không phải hoạt động nội bộ.
 
+> **Đã làm & kiểm chứng**
+>
+> - Migration `20261118090000_order_assignment`: `orders.assigned_admin_id` (+ index
+>   `(assigned_admin_id, status)`, FK `ON DELETE SET NULL`) và `admin_users.token_version`.
+>   Sinh SQL bằng `prisma migrate diff` rồi `migrate deploy` trên **dev** và **test** —
+>   tránh `migrate dev` vì cần shadow database trên Aiven.
+> - `server/booking/admin-order-notes.ts`: `updateOrderAdminNote` (trim, rỗng ⇒ `NULL`, tối đa
+>   2000 ký tự), `assignOrder` (chặn tài khoản không tồn tại / đã khoá, **idempotent** khi gán
+>   lại cùng người), `listAssignableAdmins`. Tất cả chỉ ghi `admin_audit_log`
+>   (`order.note`, `order.assign`), **không** đụng `status`.
+> - DTO/truy vấn: chi tiết đơn có `assignedAdmin`; danh sách có `assignee` + filter
+>   `?assignee=me|unassigned` (kèm `viewerId`); export CSV nhận cùng filter để file khớp màn hình.
+> - UI chi tiết đơn: card **"Nội bộ"** — select người phụ trách + textarea ghi chú. Chỉ hiện
+>   form khi có `orders:write`; role chỉ đọc thấy dạng văn bản.
+> - `tokenVersion` (món nợ từ D6): JWT mang claim `tv`; `getAdminSession` so với DB và lấy
+>   **`role` từ DB** (hạ quyền có hiệu lực ngay, không chờ hết phiên); `resetAdminPassword` và
+>   thao tác khoá tài khoản đều `tokenVersion++`.
+> - Test +6 case (tổng suite nội dung 31): ghi chú trim/không đổi status/audit; phân công +
+>   idempotent + bỏ giao + lọc `me`/`unassigned`; chặn 404 và tài khoản đã khoá;
+>   `listAssignableAdmins` bỏ tài khoản inactive; kẹp `pageSize` + export + `countOrdersByStatus`;
+>   `tokenVersion` tăng khi reset mật khẩu và khi khoá.
+> - Kiểm chứng end-to-end trên **test DB**: chi tiết đơn render "Ghi chú nội bộ" / "Người phụ
+>   trách" / nút lưu; `?assignee=unassigned` chứa đơn chưa giao; sau khi bump `tokenVersion`,
+>   `GET /api/admin/me` trả **401** và `/admin` **không render dashboard** (chỉ còn chỉ dẫn
+>   chuyển tới `/admin/login`); đăng nhập lại → 200.
+> - Cổng: `tsc` ✅ · `lint` 0 warning · `build` **50 route** · `npm test` **156/156** ·
+>   `test:coverage` exit 0 (**81.8 / 88.0 / 93.8**).
+> - **Bắt buộc khi deploy:** migration mới chỉ chạy trên dev/test. Production phải chạy
+>   `npm run db:deploy` (`prisma migrate deploy` với `DATABASE_URL`) **trước** khi deploy code;
+>   nếu không, truy vấn `Order`/`AdminUser` sẽ lỗi vì thiếu cột.
+
 ---
 
-### D8 · Kênh khách gửi đánh giá — **TODO**
+### D8 · Kênh khách gửi đánh giá — **đã xong**
 
 | | |
 |---|---|
@@ -1316,26 +1377,190 @@ với D7 để chỉ chạy một lần.
 | **Bẫy** | `Review.orderId` là `@unique` → một đơn chỉ được 1 đánh giá; phải bắt `P2002` và trả lỗi thân thiện. `reviews.phone` là dữ liệu nhạy cảm: **không** trả ra ngoài DTO |
 | **Done khi** | Gửi đánh giá từ trang tra cứu → `status = pending` · admin duyệt → hiện `approvedAt` · gửi lần 2 cho cùng đơn bị chặn · SĐT không lộ trong response/UI |
 
+> **Đã làm & kiểm chứng**
+>
+> - Nguồn: `lib/validation/review.ts` (rating 1–5, comment 10–1000, `orderCode`/`phone`/`tourSlug`
+>   tuỳ chọn, honeypot `website`) · `server/reviews/create-review.ts` ·
+>   `app/api/reviews/route.ts` (3 req/10 phút/IP + `readJsonLimited` + `handleApiError`) ·
+>   `components/reviews/review-form.tsx` + adapter `lib/reviews/client.ts`.
+> - **Sai lệch nhỏ so với plan:** form được render trong `components/lookup/order-lookup.tsx`
+>   (chỉ khi `order.status === "completed"` và đã có credentials tra cứu thay vì sửa
+>   `app/(site)/tra-cuu-don/page.tsx`. Trang đó là server component, không biết trạng thái đơn;
+>   đặt form cạnh state tra cứu là chỗ duy nhất có `order` + `phone` đã xác thực.
+> - Xác thực: `orderCode + phone` khớp đơn `completed` → gắn `orderId` + `tourId` ⇒
+>   `isVerified = true`. Sai mã, sai SĐT **hoặc** đơn chưa `completed` đều trả cùng
+>   `404 ORDER_NOT_FOUND` với cùng message (chống dò đơn). Không gửi kèm → đánh giá chung
+>   (hoặc theo `tourSlug`).
+> - Một đơn một đánh giá: pre-check `review.findUnique({ where: { orderId } })` trả
+>   `409 REVIEW_EXISTS` trước khi insert (tránh `prisma:error` cho thao tác bình thường);
+>   vẫn giữ nhánh bắt `P2002` cho race.
+> - `reviews.phone` chỉ lưu để đối soát. `AdminReviewRow` không select/không trả `phone`;
+>   response API chỉ `{ ok: true }` (không `id`, không SĐT).
+> - Test: `scripts/tests/unit/review-validation.test.ts` (7 case schema) +
+>   `scripts/tests/reviews-route.test.mts` (8 case route, DB test) — phủ completed/gắn
+>   `orderId`/`isVerified`, chống dò đơn, đơn chưa completed, gửi lần 2 → 409, honeypot,
+>   validate rating/comment, đánh giá chung, rate limit.
+> - `package.json`: thêm `test:reviews`, gộp vào `npm test` + `test:coverage`.
+>   Tổng **171 test case**.
+> - Cổng: `tsc` ✅ · `lint` 0 warning · `build` xanh (có `/api/reviews`) · `npm test`
+>   **171/171** · coverage **82.12 / 88.22 / 94.09** → ratchet gate full **80 / 88 / 92**,
+>   unit **96 / 92 / 93** (đo 98.31 / 94.42 / 95.24).
+> - Copy `/admin/reviews` đã bỏ câu "chưa có form gửi đánh giá công khai"; mô tả mới nói rõ
+>   nguồn đánh giá và huy hiệu "đã đi tour".
+
 ---
 
-### D9 · Public đọc DB + CRUD nội dung — **TODO (lớn, tách 5 bước)**
+### D9 · Public đọc DB + CRUD nội dung — **TODO (lớn, triển khai vertical slice)**
 
 **Vấn đề gốc:** `app/(site)/**` đọc `lib/fixtures/*`. Nếu chỉ thêm CRUD vào DB thì **sửa
 không ai thấy** — đúng như đã cảnh báo khi chốt phạm vi P4.
 
-| Bước | Việc | Done khi |
+**Đã kiểm tra lại repo trước khi chốt kế hoạch:**
+
+- `/diem-den/[slug]` **không tồn tại**, dù mọi card và home đều link tới → đang 404.
+- `Post` thiếu `topic`, `relatedTourCodes`, `checklist`, `isFeatured`; `post-catalog` đang
+  hardcode `featuredPostSlug`.
+- `Faq` không có cột đánh dấu hiển thị; `/lien-he` đang so khớp **nguyên văn câu hỏi**.
+- `lib/fixtures/home.ts` chứa bản sao destinations/cuisines/faqs của trang chủ;
+  `lib/fixtures/tour-details.ts` chứa bản sao destinations/cuisines của trang tour.
+- Chưa có loader nào dùng `"use cache"` / `cacheTag`; toàn bộ nội dung public đang đồng bộ.
+
+#### D9.0 · Quyết định đã chốt
+
+| # | Quyết định | Chốt |
 |---|---|---|
-| **D9.1** | Loader DB cho `destinations` + `"use cache"` + `cacheTag` + `revalidateTag` sau khi admin lưu; **fallback fixture khi DB rỗng** | Sửa điểm đến trong admin → `/diem-den` đổi sau revalidate; DB rỗng vẫn render |
-| **D9.2** | Loader cho `posts` (`/kinh-nghiem`) | Bài viết trong DB thay fixture |
-| **D9.3** | Loader cho `cuisines` + `faqs` | `/am-thuc` + FAQ trang chủ đọc DB |
-| **D9.4** | CRUD admin cho 4 domain (`/admin/destinations`, `/admin/posts`, `/admin/cuisines`, `/admin/faqs`) theo mẫu D4 | Tạo/sửa/xoá được, có audit |
-| **D9.5** | Xoá dần `lib/fixtures/*` (trừ `site.ts` vẫn là nguồn brand) + cập nhật test | `grep "@/lib/fixtures/destinations"` = 0; build/test xanh |
+| 1 | Metadata bài viết | **Migration** thêm `Post.topic`, `Post.relatedTourCodes`, `Post.checklist`, `Post.isFeatured` (không nhét vào `tags`) |
+| 2 | FAQ hiển thị ở đâu | **Migration** thêm `Faq.placement` (`home \| contact \| both \| null`); không lạm dụng `category`, không so khớp text |
+| 3 | DB rỗng | D9.2–D9.5 tạm fallback fixture để so sánh mắt; **D9.6 bỏ fallback**, DB rỗng → empty state |
+| 4 | Phạm vi public | **Cả home + `/tour/[slug]` + `/lien-he`**, không chỉ 3 trang listing |
+| 5 | Trang chi tiết điểm đến | **Thêm `/diem-den/[slug]`** ngay D9.2 (fix 404 sẵn có) |
+| 6 | Quan hệ tour ↔ điểm đến/món ăn | **Checkbox chọn tour published** trong form admin |
+| 7 | Quyền 4 màn CRUD | **`content:write`** cho cả 4 (editor cũng quản lý được) |
+| 8 | Cache | **`"use cache"` + `cacheLife("max")` + `cacheTag`**, `updateTag` trong server action sau mutation |
+| 9 | Thứ tự | **Vertical slice theo domain**: loader + admin CRUD + cache + test trong cùng một bước |
+| 10 | Slug | **Bất biến sau khi tạo**; không có redirect 301 trong D9 |
+| 11 | Ảnh thiếu/null | Post: ảnh fallback nội bộ + admin bắt buộc `/images/*`; home destination: lọc bỏ khỏi section nếu không có ảnh; `/diem-den` dùng placeholder sẵn có |
+| 12 | Test/coverage | Test **ngay trong từng slice**; cuối D9.6 đo lại và ratchet, không dồn test về cuối |
 
-**Rủi ro phải chấp nhận:** trang chủ mất `○` (static) → chuyển `ƒ` hoặc dùng `"use cache"`
-+ `revalidateTag` để vẫn cache. Quyết định cache **trước** khi code, không sửa giữa đường.
+**Ngoài phạm vi D9:** lịch trình từng ngày, gallery tour, quan hệ tour ↔ post ngoài
+`relatedTourCodes`, redirect khi đổi slug, upload ảnh (D10).
 
-**Thứ tự an toàn:** làm từng domain, mỗi domain một PR nhỏ, chạy đủ cổng
-`tsc + lint + build + npm test` trước khi sang domain kế.
+#### D9.1 · Nền dữ liệu (chặn tất cả)
+
+| | |
+|---|---|
+| **Schema** | `Post.topic String? @db.VarChar(40)` · `Post.relatedTourCodes Json?` · `Post.checklist Json?` · `Post.isFeatured Boolean @default(false) @map("is_featured")` · `Faq.placement String? @db.VarChar(20)` |
+| **Migration** | Sinh SQL bằng `node scripts/with-db.mjs dev npx prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script`, lưu `prisma/migrations/<ts>_content_metadata/migration.sql`; chạy `npm run db:migrate:dev` + `npm run db:migrate:test` (**không** dùng `npm run db:migrate` vì trỏ production) |
+| **Seed** | `prisma/seed.mjs`: thêm `topic`/`relatedTourCodes`/`checklist`/`isFeatured` cho 3 bài viết; thêm 4 FAQ `placement = home`; đánh `placement = contact` cho 4 FAQ liên hệ; giữ 8 FAQ chủ đề |
+| **Mapper thuần** | `lib/content/mappers.ts` hoặc mapper theo domain: DB row → contract (`Decimal`→number, JSON→array, category whitelist, `toLocalImage`, `publishedAt`→ISO, fallback ảnh) |
+| **Test** | Unit mapper: category lạ, `lat/lng` null, `tags` không phải array, `checklist` sai kiểu, ảnh ngoài `/images` |
+| **Done khi** | `tsc/lint/build` xanh · `npm test` cũ vẫn xanh · dev + test DB đã migrate/seed |
+
+#### D9.2 · Điểm đến (vertical slice)
+
+| | |
+|---|---|
+| **Tạo mới** | `server/content/public-destinations.ts` (`listPublicDestinations`, `getPublicDestinationBySlug`, `listDestinationsForTour`) · `server/content/admin-destinations.ts` · `app/admin/(dashboard)/destinations/{page.tsx,actions.ts}` · `app/admin/(dashboard)/destinations/[id]/page.tsx` · `app/(site)/diem-den/[slug]/page.tsx` |
+| **Sửa** | `lib/destinations/listing.ts` (bỏ fixture, giữ `CATEGORY_GROUPS` + mapper) · `app/(site)/diem-den/page.tsx` · `app/(site)/page.tsx` + `components/home/destinations-section.tsx` (nhận DB top 4) · `app/(site)/tour/[slug]/page.tsx` + `components/tour-detail/tour-destinations.tsx` (lấy DB) · `components/admin/admin-nav-links.tsx` |
+| **Loader** | `"use cache"` + `cacheLife("max")` + `cacheTag("content:destinations")`; filter `status = published`; order `sortOrder`; tourRefs qua `TourDestination` + `Tour.status = published` |
+| **Admin** | List + tạo + sửa + xoá; slug bất biến; `status` draft/published; chọn tour liên kết; audit `destination.create\|update\|delete`; `updateTag` sau mutation |
+| **Trang chi tiết** | Ảnh bìa, tên, tỉnh, nhóm, mô tả, mùa đẹp, ghi chú di chuyển, tour liên quan; `generateMetadata`; `generateStaticParams` async; `instant = false` |
+| **Test** | Loader (published/order/tourRefs/empty) + admin service (create/update/delete/trùng slug/audit/404) + mapper |
+| **Done khi** | Sửa điểm đến trong admin → `/diem-den`, `/diem-den/[slug]`, home, tour detail đổi ngay; draft biến khỏi public; xoá → 404; DB rỗng → empty state |
+
+#### D9.3 · Bài viết (vertical slice)
+
+| | |
+|---|---|
+| **Tạo mới** | `server/content/public-posts.ts` · `server/content/admin-posts.ts` · `app/admin/(dashboard)/posts/{page.tsx,actions.ts}` · `app/admin/(dashboard)/posts/[id]/page.tsx` |
+| **Sửa** | `lib/posts/listing.ts` (bỏ fixture; `POST_TOPICS` giữ nguyên) · `lib/posts/detail.ts` (nhận dữ liệu, không tự đọc module) · `components/posts/post-catalog.tsx` (featured theo `isFeatured`) · `/kinh-nghiem/page.tsx` · `/kinh-nghiem/[slug]/page.tsx` |
+| **Loader** | Chỉ `status = published` và `publishedAt <= now`; order `publishedAt desc`; map `topic`, `tags`, `checklist`, `relatedTourCodes`; tour liên quan qua code + `Tour.status = published`; `generateStaticParams` async |
+| **Admin** | Tạo/sửa/xoá; slug bất biến; `category = kinh-nghiem` cố định; tags nhập phẩy; related codes nhập phẩy; checklist mỗi dòng một mục; status draft/published; `publishedAt`; SEO; `isFeatured`; ảnh bìa qua `<datalist>` media; audit `post.create\|update\|delete`; `updateTag("content:posts")` |
+| **Test** | Loader (draft/ẩn, order, tags/checklist, related tours) + admin service + mapper |
+| **Done khi** | Sửa tiêu đề/nội dung trong admin → `/kinh-nghiem` + detail đổi ngay; draft không hiện; featured đúng bài được tick |
+
+#### D9.4 · Món ăn (vertical slice)
+
+| | |
+|---|---|
+| **Tạo mới** | `server/content/public-cuisines.ts` · `server/content/admin-cuisines.ts` · `app/admin/(dashboard)/cuisines/{page.tsx,actions.ts}` · `app/admin/(dashboard)/cuisines/[id]/page.tsx` |
+| **Sửa** | `lib/cuisines/listing.ts` (bỏ fixture) · `lib/cuisines/detail.ts` (nhận dữ liệu) · `/am-thuc/page.tsx` · `/am-thuc/[slug]/page.tsx` · `components/home/cuisine-section.tsx` + `app/(site)/page.tsx` (DB top N) · `components/tour-detail/tour-cuisines.tsx` + `/tour/[slug]` (DB) |
+| **Loader** | Order `sortOrder`; tourRefs qua `TourCuisine` + tour published; `imageUrl` qua `toLocalImage`; `description` null → chuỗi rỗng |
+| **Admin** | Tạo/sửa/xoá; slug bất biến; chọn tour liên kết; ảnh `/images/*`; audit `cuisine.create\|update\|delete`; `updateTag("content:cuisines")` |
+| **Test** | Loader + admin service + mapper |
+| **Done khi** | Sửa món trong admin → `/am-thuc`, detail, home, tour detail đổi ngay; xoá → 404 |
+
+#### D9.5 · FAQ (vertical slice)
+
+| | |
+|---|---|
+| **Tạo mới** | `server/content/public-faqs.ts` (`listHomeFaqs`, `listContactFaqs`) · `server/content/admin-faqs.ts` · `app/admin/(dashboard)/faqs/{page.tsx,actions.ts}` · `app/admin/(dashboard)/faqs/[id]/page.tsx` |
+| **Sửa** | `app/(site)/page.tsx` (home FAQ từ DB) · `app/(site)/lien-he/page.tsx` (bỏ `CONTACT_QUESTIONS` + so khớp text) · `components/contact/contact-faq.tsx` (type từ `lib/contracts`, không từ fixture) |
+| **Loader** | Filter `isActive`; home `placement in (home, both)`; contact `placement in (contact, both)`; order `sortOrder`; `"use cache"` + `cacheTag("content:faqs")` |
+| **Admin** | Tạo/sửa/xoá; câu hỏi, trả lời, `category` chủ đề, `placement`, `sortOrder`, `isActive`; audit `faq.create\|update\|delete`; `updateTag("content:faqs")` |
+| **Test** | Placement/active/order + admin service |
+| **Done khi** | Sửa FAQ trong admin → home + `/lien-he` đổi ngay; tắt `isActive` thì biến mất; không còn phụ thuộc text câu hỏi |
+
+#### D9.6 · Dọn fixture + docs + khoá coverage
+
+| | |
+|---|---|
+| **Xoá** | `lib/fixtures/{destinations,posts,cuisines,faqs}.ts` sau khi `grep` không còn import |
+| **Thu gọn** | `lib/fixtures/home.ts` chỉ còn `tours` + `journey` (bỏ destinations/cuisines/faqs) · `tour-details.ts` bỏ `destinations`/`cuisines` nếu trang tour đã lấy DB |
+| **Giữ** | `lib/fixtures/site.ts` (brand), `home-media.ts` (ảnh hero/closing), `tour-details.ts` phần lịch trình |
+| **Docs** | `sources/README.md` (public reads DB + 4 route admin + cache), `AGENTS.md` mục "Content vs. data", PLAN errata |
+| **Kiểm tra** | `grep "@/lib/fixtures/(destinations\|posts\|cuisines\|faqs)"` = 0 · `grep "@/lib/prisma"` trong `app/`/`components/` = 0 · mọi trang 200 |
+| **Coverage** | Đo lại, ratchet `test:coverage` + `test:coverage:unit`; thêm test còn thiếu |
+| **Done khi** | `tsc/lint/build` xanh · `npm test` xanh · không còn fixture domain · DB rỗng render empty state |
+
+#### Cache / render
+
+```ts
+// server/content/public-destinations.ts
+export async function listPublicDestinations() {
+  "use cache";
+  cacheLife("max");
+  cacheTag("content:destinations");
+  const rows = await prisma.destination.findMany({ where: { status: "published" }, ... });
+  return rows.map(toDestinationListingData);
+}
+```
+
+- Dùng `"use cache"` cấp **data**, không cache cả page.
+- Sau mutation trong server action: `updateTag("content:destinations")` (read-your-own-writes).
+- `revalidatePath` không dùng vì phải liệt kê quá nhiều route (home, listing, detail, tour detail).
+- Seed/sửa DB tay **không** tự invalidate — phải restart dev hoặc gọi revalidate; ghi vào README.
+- Kiểm tra build: `/`, `/diem-den`, `/am-thuc`, `/kinh-nghiem` nên vẫn `○`/`◐`; nếu thành `ƒ`
+  là dấu hiệu loader chưa được cache.
+
+#### Rủi ro riêng của D9
+
+| Rủi ro | Giảm thiểu |
+|---|---|
+| `npm run db:seed` ghi đè nội dung admin vừa sửa | Ghi rõ README; chỉ seed dev/test; production dùng `SEED_FORCE_*` có kiểm soát |
+| `generateStaticParams` đọc DB lúc build, DB chưa có → build rỗng | Empty state; deploy DB trước; slug mới render dynamic (`dynamicParams` mặc định) |
+| Post `coverImage` NULL nhưng contract bắt buộc | Ảnh fallback nội bộ + admin bắt buộc `/images/*` |
+| Destination image NULL làm `DestinationsSection` crash | Home loader lọc điểm đến có ảnh; `/diem-den` dùng placeholder sẵn có |
+| Sửa slug làm chết URL cũ | Slug bất biến sau khi tạo |
+| Xoá fixture khi home/tour-details còn import | Làm D9.6 cuối; `grep` trước khi xoá |
+| Migration chạy nhầm production | `with-db.mjs dev/test`; production `db:deploy` trước khi deploy code |
+| 4 màn admin làm sidebar quá dài | Thêm nhóm "Nội dung" hoặc đo breakpoint 1024/768 trước khi merge |
+| Cache không invalidate khi sửa DB tay | Ghi rõ trong README; dev restart; test bằng admin action |
+
+#### Khối lượng & thứ tự
+
+| Bước | Tạo mới | Sửa | Ghi chú |
+|---|---|---|---|
+| D9.1 | 1 mapper + migration + 4 test | 3 | Schema + seed + mapper thuần |
+| D9.2 | 2 service + 3 trang admin + 1 trang public | ~8 | Điểm đến |
+| D9.3 | 2 service + 3 trang admin | ~7 | Bài viết |
+| D9.4 | 2 service + 3 trang admin | ~6 | Món ăn |
+| D9.5 | 2 service + 3 trang admin | ~4 | FAQ |
+| D9.6 | — | ~6 + xoá 4 | Dọn fixture + docs + coverage |
+
+**Thứ tự thực thi: D9.1 → D9.2 → D9.3 → D9.4 → D9.5 → D9.6.**
+Mỗi slice phải qua đủ cổng `tsc + lint + build + npm test` và smoke test “admin save → public
+đổi” trước khi sang slice kế. Không gộp 2 domain vào một lần build.
 
 ---
 
@@ -1358,14 +1583,16 @@ D0 ──▶ D1 ──▶ D2
 D3 ──┐
 D5 ──┴──▶ D6 ──┬──▶ D7
                └──▶ D10 (audit, badge, upload)
-D8 ──▶ (nuôi dữ liệu cho) D5
-D9.1 ──▶ D9.2 ──▶ D9.3 ──▶ D9.4 ──▶ D9.5
+D8 ──▶ (nuôi dữ liệu cho) D5 — ✅ đã xong
+D9.1 ──▶ D9.2 ──▶ D9.3 ──▶ D9.4 ──▶ D9.5 ──▶ D9.6
 ```
 
 - **D0 trước tất cả** — bỏ `remotePatterns` là điều kiện để `next/image` không nổ.
-- **D6 trước D7/D10** — cả hai thêm trang/action mới, phải có capability sẵn để không phải sửa lại.
+- **D6 trước D7/D10** — ✅ đã xong; các phase sau chỉ cần thêm capability vào ma trận.
 - **D8 độc lập**, nhưng làm sớm thì D5 mới có dữ liệu để kiểm duyệt thật.
-- **D9 sau cùng** vì nó đổi kiến trúc render của storefront; không nên trộn với việc admin.
+- **D9 đổi kiến trúc render của storefront** nên làm sau khi admin backend ổn định; không trộn
+  với D10. D9 làm **vertical slice** (D9.1 nền → D9.2 điểm đến → D9.3 bài viết → D9.4 món ăn →
+  D9.5 FAQ → D9.6 dọn fixture), mỗi slice có đủ loader + admin CRUD + test.
 
 ### 10.8 Rủi ro
 
@@ -1375,7 +1602,13 @@ D9.1 ──▶ D9.2 ──▶ D9.3 ──▶ D9.4 ──▶ D9.5
 | Admin sửa giá/chuyến khi chưa phân quyền | D6 làm trước D7; hiện tại chỉ nên cấp tài khoản `owner` cho người tin cậy |
 | Migration thêm cột chạy nhầm vào production | Dùng `node scripts/with-db.mjs dev npx prisma migrate dev`; `DATABASE_URL` chỉ dùng cho `migrate deploy` khi go-live |
 | `settings.booking` bị ghi đè làm mất `cancellationPolicy` | **Đã sửa** ở D2 (merge); test khoá lại |
-| Xoá fixture ở D9.5 làm mất nội dung marketing đang đẹp | Làm từng domain, so sánh bằng mắt trên dev trước khi xoá; giữ fallback đến bước cuối |
+| Xoá fixture ở D9.6 làm mất nội dung marketing đang đẹp | Làm từng domain, so sánh bằng mắt trên dev trước khi xoá; chỉ xoá sau khi `grep` import = 0 |
+| D9: `Post` thiếu `topic`/`relatedTourCodes`/`checklist` → mất UI bài viết | Migration ở D9.1; không nhét vào `tags` |
+| D9: `/diem-den/[slug]` không tồn tại → mọi card 404 | Thêm trang chi tiết trong D9.2 |
+| D9: home/tour detail vẫn đọc bản sao fixture | Chuyển home destinations/cuisines/faqs + tour detail destinations/cuisines sang DB trong D9.2–D9.5 |
+| D9: `db:seed` ghi đè nội dung admin vừa sửa | Chỉ seed dev/test; ghi cảnh báo trong README; production dùng `SEED_FORCE_*` có kiểm soát |
+| D9: sửa DB tay nhưng cache `"use cache"` vẫn trả bản cũ | Admin action gọi `updateTag`; sửa tay phải restart dev hoặc gọi revalidate; ghi README |
+| D9: 4 màn admin mới làm sidebar quá dài | Thêm nhóm "Nội dung" hoặc kiểm tra breakpoint 1024/768 trước khi merge |
 | Upload ảnh ghi vào `public/` rồi mất khi deploy | Dùng Cloudinary/S3, không ghi filesystem |
 | JWT cũ vẫn dùng được sau khi đổi mật khẩu | `tokenVersion` ở D6 + kiểm trong `getAdminSession()` |
 
@@ -1383,14 +1616,14 @@ D9.1 ──▶ D9.2 ──▶ D9.3 ──▶ D9.4 ──▶ D9.5
 
 | Phase | Tạo mới | Sửa | Ghi chú |
 |---|---|---|---|
-| D6 | 2 (`permissions.ts`, test) | ~20 (mọi page/action/nav) | Cơ học nhưng rộng; làm một lần |
-| D7 | 2 (service, migration) | 4 | Cần migrate dev + test |
-| D8 | 4 | 2 | Kèm rate limit + test route |
-| D9 | 4 loader + 4 trang admin | ~12 | Chia 5 bước nhỏ, mỗi bước một cổng |
+| D6 | 2 (`permissions.ts`, test) | ~20 (mọi page/action/nav) | ✅ đã xong — 23 file chạm tới |
+| D7 | 2 (service, migration) | 4 | ✅ đã xong — kèm `tokenVersion` |
+| D8 | 4 | 3 | ✅ đã xong — kèm `test:reviews` + ratchet coverage |
+| D9 | 2 service/domain + 4 mapper + migration + 12 trang admin/public | ~25 | 6 slice: D9.1 nền → D9.2 điểm đến → D9.3 bài viết → D9.4 món ăn → D9.5 FAQ → D9.6 dọn fixture |
 | D10 | 3 | 3 | Upload cần quyết định Cloudinary trước |
 
-**Thứ tự thực thi: D6 → D7 → (D8 song song) → D10 → D9.**
-D9 để cuối vì nó đổi kiến trúc render; D6 phải xong trước mọi thứ thêm quyền.
+**Thứ tự thực thi: D9 (6 slice) → D10.**
+D8 đã xong; D9 làm trước vì yêu cầu hiện tại là đưa nội dung public sang DB. D10 để sau.
 
 ---
 
@@ -1403,9 +1636,15 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | §B1 (ghi chú) | "URL ảnh trong seed là `upload.wikimedia.org` → đã có trong `next.config.ts#images.remotePatterns`" | **Sai**: `remotePatterns` đã bị xoá ở D0. Mọi ảnh phải là `/images/*.webp`; dữ liệu DB cũ đi qua `lib/images.ts#toLocalImage` |
 | §B1 (`coverImage`) | `coverImage: { src: tour.coverImageUrl, … }` | Phải bọc `toLocalImage(tour.coverImageUrl, tour.name)` — nếu không, một row còn URL ngoài sẽ làm sập trang |
 | §B4 | "Trang `/admin/messages` … để phase sau" | **Đã xong** ở D3 |
-| §T4 | "Tổng 111 test case" · coverage 74.31 / 90.24 / 94.56 | Hiện **144 test**, coverage đo lại ≈ 81.2 / 88.3 / 92.8 (vẫn qua gate 72 / 88 / 92) |
+| §T4 | "Tổng 111 test case" · coverage 74.31 / 90.24 / 94.56 | Hiện **171 test**, coverage đo lại ≈ 82.12 / 88.22 / 94.09 (gate 80 / 88 / 92). `test:coverage:unit` ratchet lên 96 / 92 / 93 |
 | §T0 | `helpers/factories.ts` là nguồn tạo dữ liệu test duy nhất | Vẫn đúng, nhưng `scripts/tests/admin-content.test.mts` tự tạo dữ liệu riêng (chuyến 2031, media, review, admin) và **khôi phục** settings/tour trong `after()` |
-| §9.6 | Track C: 5 file mới | Không đổi; Track D thêm 8 trang admin + 7 service (xem §10.9) |
+| §9.6 | Track C: 5 file mới | Không đổi; Track D thêm 8 trang admin + 7 service trước D9, và D9 dự kiến thêm 4 domain nội dung (12 trang admin/public + 8 service) |
+| §10.0 (đo lúc viết plan) | `build 50 route` · `npm test 156/156` · coverage 81.8 / 88.0 / 93.8 (gate 72 / 88 / 92) | Sau D8: **51 route** (thêm `/api/reviews`), **171 test**, coverage **82.12 / 88.22 / 94.09** (gate 80 / 88 / 92) |
+| §D9 (bảng cũ) | "tách 5 bước" · D9.1 fallback fixture · D9.5 xoá `lib/fixtures/*` trừ `site.ts` | Đổi thành **6 slice** D9.1–D9.6; fallback chỉ tạm đến D9.6 rồi dùng empty state; giữ `site.ts`, `home.ts` (tours/journey), `tour-details.ts` (lịch trình) |
+| Ngoài plan | — | `/diem-den/[slug]` chưa từng tồn tại dù mọi card link tới → D9.2 thêm mới, không phải sửa |
+| Ngoài plan | — | `Post` thiếu `topic`/`relatedTourCodes`/`checklist`/`isFeatured`; `Faq` thiếu `placement` → D9.1 thêm migration |
+| Ngoài plan | — | D8 render form đánh giá trong `components/lookup/order-lookup.tsx`, không phải `app/(site)/tra-cuu-don/page.tsx` (trang server không biết trạng thái đơn) |
+| Ngoài plan | — | Next.js 16.4.2 → 16.4.6 (bản vá bảo mật) đang ở nhánh `next-security-upgrade` trong worktree riêng, **chưa merge** vào checkout chính |
 | §0 (quyết định 1) | "Server Actions chỉ cho form admin" | Đúng và đang giữ: **toàn bộ** admin dùng server action, trừ `/api/admin/orders*` + `/api/admin/login|logout|me` |
 | Ngoài plan | — | `app/admin/login/page.tsx:16` từng ném `Blocking Route` vì `new Date()` dưới `cacheComponents`; đã bọc `"use cache"` (xem D0) |
 | Ngoài plan | — | `prisma/seed.mjs` đã chạy lại trên **DB production** ngày 16/11/2026: tours/destinations/posts/faqs/media quay về nội dung seed. Nếu trước đó có sửa tay trên production thì đã bị ghi đè (không đụng `orders`, khách hàng, mật khẩu admin) |

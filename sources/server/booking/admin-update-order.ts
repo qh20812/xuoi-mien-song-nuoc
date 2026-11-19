@@ -19,6 +19,7 @@ const ADMIN_INCLUDE = {
   departure: true,
   passengers: true,
   statusHistory: true,
+  assignedAdmin: { select: { id: true, name: true, email: true } },
 } satisfies Prisma.OrderInclude;
 
 const TRANSITIONS: Record<

@@ -50,11 +50,13 @@ app/
   (site)/                storefront: tour, điểm đến, ẩm thực, kinh nghiệm, đặt tour…
   api/orders/…           đặt chỗ, tra cứu, huỷ (public)
   api/contact/           nhận lời nhắn liên hệ (public)
+  api/reviews/           nhận đánh giá của khách (public)
   api/admin/…            login/logout/me, danh sách & cập nhật đơn
   admin/login/           trang đăng nhập
   admin/(dashboard)/     dashboard, danh sách đơn, chi tiết đơn + server actions
 components/
   admin/                 shell, sidebar, drawer, page header, chip trạng thái, order actions
+  reviews/               form khách gửi đánh giá (chỉ hiện với đơn completed)
 lib/
   api/client.ts          fetch wrapper dùng chung (inject được baseUrl/fetchImpl)
   auth/                  JWT cookie, session, sanitize `next`
@@ -62,8 +64,9 @@ lib/
   booking/status-labels.ts  nhãn 6 trạng thái, dùng chung admin + API
   orders/client.ts       adapter tra cứu & huỷ đơn gọi API thật
   contact/client.ts      adapter gửi lời nhắn liên hệ
+  reviews/client.ts      adapter gửi đánh giá
   fixtures/              nội dung marketing tĩnh cho trang public
-  validation/            schema zod đầu vào API (order, contact)
+  validation/            schema zod đầu vào API (order, contact, review)
   settings.ts            type + mặc định + hàm chuẩn hoá (thuần, không Prisma)
   time.ts                ngày/giờ theo múi giờ VN
   rate-limit.ts          rate limit trong bộ nhớ
@@ -72,6 +75,7 @@ server/
   booking/               create / lookup / cancel / admin update + DTO
   catalog/               tour & chuyến khởi hành công khai (đọc từ MySQL)
   contact/               ghi contact_messages
+  reviews/               tạo đánh giá khách + service kiểm duyệt cho admin
   settings/              đọc bảng settings + ghép cấu hình site
   auth/authenticate.ts   xác thực admin dùng chung
 prisma/
@@ -182,6 +186,7 @@ npm run db:verify:test
 | `POST` | `/api/orders/lookup` | `{ code, phone }`. Lỗi chung khi không khớp. 15 req / 10 phút |
 | `POST` | `/api/orders/cancel` | `{ code, phone, reason? }`. Chỉ khi còn ≥ 3 ngày |
 | `POST` | `/api/contact` | `{ name, phone, email, subject, message }` → ghi `contact_messages`. 3 req / 10 phút / IP |
+| `POST` | `/api/reviews` | `{ authorName, rating, comment, orderCode?, phone?, tourSlug? }` → `pending`. 3 req / 10 phút / IP |
 
 `POST /api/orders` nhận:
 

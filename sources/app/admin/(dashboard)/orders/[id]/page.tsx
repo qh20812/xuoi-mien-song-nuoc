@@ -1,15 +1,22 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import { AccessDenied } from "@/components/admin/access-denied";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { OrderActions } from "@/components/admin/order-actions";
 import { HoldExpiredLabel, StatusBadge } from "@/components/admin/status-badge";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityPage } from "@/lib/auth/session";
 import { statusLabel } from "@/lib/booking/status-labels";
 import { formatDateVN, formatDateTimeVN, formatVndDisplay } from "@/lib/format";
+import { can } from "@/server/auth/permissions";
+import { listAssignableAdmins } from "@/server/booking/admin-order-notes";
 import { getAdminOrderById } from "@/server/booking/admin-update-order";
 import { BookingError } from "@/server/booking/errors";
-import { updateOrderAction } from "./actions";
+import {
+  assignOrderAction,
+  saveAdminNoteAction,
+  updateOrderAction,
+} from "./actions";
 
 export const metadata = {
   title: "Chi tiết đơn | Quản trị Xuôi Miền Sông Nước",
@@ -66,7 +73,11 @@ export default async function AdminOrderDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string }>;
 }) {
-  await requireAdminPage("/admin/orders");
+  const admin = await requireCapabilityPage("orders:read", "/admin/orders");
+  if (!admin) return <AccessDenied />;
+
+  const canWrite = can(admin.role, "orders:write");
+  const assignees = canWrite ? await listAssignableAdmins() : [];
 
   const { id } = await params;
   const { error } = await searchParams;
@@ -235,11 +246,92 @@ export default async function AdminOrderDetailPage({
           </SectionCard>
 
           <SectionCard title="Hành động">
-            <OrderActions
-              orderId={order.id}
-              status={order.status}
-              updateOrder={updateOrderAction}
-            />
+            {canWrite ? (
+              <OrderActions
+                orderId={order.id}
+                status={order.status}
+                updateOrder={updateOrderAction}
+              />
+            ) : (
+              <p className="text-[13px] leading-6 text-sage">
+                Tài khoản của bạn chỉ có quyền xem đơn, không đổi được trạng thái.
+              </p>
+            )}
+          </SectionCard>
+
+          <SectionCard title="Nội bộ">
+            {canWrite ? (
+              <div className="flex flex-col gap-4">
+                <form action={assignOrderAction} className="flex flex-col gap-2">
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <label
+                    htmlFor="assignee"
+                    className="text-[12px] font-semibold text-sage"
+                  >
+                    Người phụ trách
+                  </label>
+                  <select
+                    id="assignee"
+                    name="assigneeId"
+                    defaultValue={order.assignedAdmin?.id ?? ""}
+                    className="h-10 rounded-[10px] border border-line bg-surface px-3 text-[13px] text-ink focus-visible:border-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
+                  >
+                    <option value="">Chưa giao</option>
+                    {assignees.map((admin) => (
+                      <option key={admin.id} value={admin.id}>
+                        {admin.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="submit"
+                    className="h-9 self-start rounded-[10px] border border-line bg-surface px-3 text-[12px] font-semibold text-ink transition-colors hover:border-clay hover:text-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
+                  >
+                    Lưu phân công
+                  </button>
+                </form>
+
+                <form
+                  action={saveAdminNoteAction}
+                  className="flex flex-col gap-2 border-t border-line pt-3"
+                >
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <label
+                    htmlFor="adminNote"
+                    className="text-[12px] font-semibold text-sage"
+                  >
+                    Ghi chú nội bộ
+                  </label>
+                  <textarea
+                    id="adminNote"
+                    name="adminNote"
+                    rows={4}
+                    maxLength={2000}
+                    defaultValue={order.adminNote ?? ""}
+                    placeholder="Khách hẹn gọi lại, cần xe 7 chỗ…"
+                    className="w-full rounded-[10px] border border-line bg-surface px-3 py-2 text-[13px] leading-6 text-ink focus-visible:border-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="h-9 self-start rounded-[10px] border border-line bg-surface px-3 text-[12px] font-semibold text-ink transition-colors hover:border-clay hover:text-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
+                  >
+                    Lưu ghi chú
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 text-[13px] leading-6 text-sage">
+                <p>
+                  Phụ trách:{" "}
+                  <span className="font-medium text-ink">
+                    {order.assignedAdmin?.name ?? "chưa giao"}
+                  </span>
+                </p>
+                <p className="whitespace-pre-line">
+                  {order.adminNote || "Chưa có ghi chú nội bộ."}
+                </p>
+              </div>
+            )}
           </SectionCard>
 
           <SectionCard title="Chính sách huỷ">

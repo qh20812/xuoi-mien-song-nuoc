@@ -4,11 +4,12 @@ import logo from "@/public/logo-xuoi-mien-song-nuoc.png";
 import { AdminNavLinks } from "@/components/admin/admin-nav-links";
 
 type AdminSidebarProps = {
-  admin: { name: string; email: string; role: string };
+  admin: { name: string; email: string };
+  capabilities: readonly string[];
   logoutAction: () => Promise<void>;
 };
 
-export function AdminSidebar({ admin, logoutAction }: AdminSidebarProps) {
+export function AdminSidebar({ admin, capabilities, logoutAction }: AdminSidebarProps) {
   return (
     <aside className="hidden bg-ink lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-[248px] lg:shrink-0 lg:flex-col">
       <Link
@@ -33,7 +34,7 @@ export function AdminSidebar({ admin, logoutAction }: AdminSidebarProps) {
       </Link>
 
       <div className="mt-2">
-        <AdminNavLinks role={admin.role} />
+        <AdminNavLinks capabilities={capabilities} />
       </div>
 
       <div className="mt-auto border-t border-contrast-on-accent/10 px-5 py-4">

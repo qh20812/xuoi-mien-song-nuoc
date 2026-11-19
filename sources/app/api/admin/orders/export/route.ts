@@ -1,9 +1,10 @@
 import { connection } from "next/server";
 import { statusLabel } from "@/lib/booking/status-labels";
 import { toCsv } from "@/lib/csv";
-import { requireAdminApi } from "@/lib/auth/session";
+import { requireCapabilityApi } from "@/lib/auth/session";
 import { handleApiError } from "@/lib/http";
 import {
+  isAdminOrderAssignee,
   isAdminOrderStatus,
   listAdminOrdersForExport,
 } from "@/server/booking/admin-queries";
@@ -29,14 +30,21 @@ export async function GET(request: Request) {
   await connection();
 
   try {
-    await requireAdminApi();
+    const admin = await requireCapabilityApi("orders:export");
 
     const url = new URL(request.url);
     const statusParam = url.searchParams.get("status");
     const status = isAdminOrderStatus(statusParam) ? statusParam : undefined;
+    const assigneeParam = url.searchParams.get("assignee");
+    const assignee = isAdminOrderAssignee(assigneeParam) ? assigneeParam : undefined;
     const q = url.searchParams.get("q")?.trim() || undefined;
 
-    const rows = await listAdminOrdersForExport({ status, q });
+    const rows = await listAdminOrdersForExport({
+      status,
+      q,
+      assignee,
+      viewerId: admin.id,
+    });
 
     const csv = toCsv([
       HEADER,

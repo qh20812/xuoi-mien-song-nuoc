@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AccessDenied } from "@/components/admin/access-denied";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
-import { requireAdminPage } from "@/lib/auth/session";
+import { requireCapabilityPage } from "@/lib/auth/session";
 import { formatVndDisplay } from "@/lib/format";
 import {
   TOUR_STATUS_LABEL,
@@ -39,7 +40,8 @@ export default async function AdminTourEditPage({
   searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
   const { slug } = await params;
-  await requireAdminPage(`/admin/tours/${slug}`);
+  const admin = await requireCapabilityPage("catalog:write", `/admin/tours/${slug}`);
+  if (!admin) return <AccessDenied />;
 
   const query = await searchParams;
 
