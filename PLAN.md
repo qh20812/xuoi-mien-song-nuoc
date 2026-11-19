@@ -640,7 +640,7 @@ B0 ──▶ B1 ──▶ B2 ──▶ B3
 - [x] **D7** Ghi chú nội bộ + phân công đơn (+ `tokenVersion`)
 - [x] **D8** Kênh khách gửi đánh giá
 - [ ] **D9** Public đọc DB + CRUD điểm đến/bài viết/món ăn/FAQ
-  - [ ] **D9.1** Schema/migration/seed/mapper thuần (`Post.topic`, `relatedTourCodes`, `checklist`, `isFeatured`; `Faq.placement`)
+  - [x] **D9.1** Schema/migration/seed/mapper thuần (`Post.topic`, `relatedTourCodes`, `checklist`, `isFeatured`; `Faq.placement`)
   - [ ] **D9.2** Điểm đến — loader + `/diem-den/[slug]` + admin CRUD + cache
   - [ ] **D9.3** Bài viết — loader + admin CRUD + featured theo DB
   - [ ] **D9.4** Món ăn — loader + admin CRUD + home/tour detail
@@ -1462,6 +1462,27 @@ không ai thấy** — đúng như đã cảnh báo khi chốt phạm vi P4.
 | **Mapper thuần** | `lib/content/mappers.ts` hoặc mapper theo domain: DB row → contract (`Decimal`→number, JSON→array, category whitelist, `toLocalImage`, `publishedAt`→ISO, fallback ảnh) |
 | **Test** | Unit mapper: category lạ, `lat/lng` null, `tags` không phải array, `checklist` sai kiểu, ảnh ngoài `/images` |
 | **Done khi** | `tsc/lint/build` xanh · `npm test` cũ vẫn xanh · dev + test DB đã migrate/seed |
+
+> **Đã làm & kiểm chứng**
+>
+> - Migration `20261120100000_content_metadata`: thêm `posts.topic`, `posts.related_tour_codes`,
+>   `posts.checklist`, `posts.is_featured`, `faqs.placement`. Đã `migrate deploy` trên **dev**
+>   và **test** (chưa đụng production — để D9.6/deploy).
+> - Seed: 3 bài viết có `topic`/`relatedTourCodes`/`checklist`/`isFeatured`; 12 FAQ
+>   (4 `placement = contact`, 4 `placement = home`, 4 chủ đề còn lại `null`).
+> - `lib/content/mappers.ts` — mapper thuần cho Destination/Post/Cuisine/FAQ:
+>   `Decimal`→number, JSON→string[], category/topic/placement whitelist, `toLocalImage`,
+>   `publishedAt`→ISO, ảnh fallback cho post.
+> - Tách `lib/destinations/categories.ts` (`CATEGORY_GROUPS`, `CATEGORY_LABELS`,
+>   `normalizeDestinationCategory`, `groupFor`); `lib/destinations/listing.ts` re-export
+>   `CATEGORY_GROUPS` để component cũ không phải sửa.
+> - Thêm `lib/contracts/faq.ts` (`FaqRecord`, `PublicFaqRecord`, `FaqPlacement`);
+>   `lib/fixtures/faqs.ts` import lại type thay vì tự định nghĩa.
+> - Test `scripts/tests/unit/content-mappers.test.ts` (10 case): category lạ, Decimal/string/null,
+>   ảnh ngoài `/images`, tags/checklist sai kiểu, topic/placement fallback, publishedAt hỏng.
+> - Cổng: `tsc` ✅ · `lint` ✅ · `build` ✅ · `npm test` **181/181** ·
+>   `test:coverage` **83.38 / 88.43 / 93.87** (gate 80/88/92).
+> - Kiểm tra DB dev: 3 post đúng metadata, FAQ `home=4 / contact=4 / null=4`.
 
 #### D9.2 · Điểm đến (vertical slice)
 

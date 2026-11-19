@@ -1,9 +1,6 @@
-export type FaqRecord = {
-  question: string;
-  answer: string;
-  category: "transport" | "booking" | "safety" | "weather";
-  sortOrder: number;
-};
+import type { FaqRecord } from "@/lib/contracts/faq";
+
+export type { FaqRecord };
 
 export const faqs: FaqRecord[] = [
   {

@@ -252,6 +252,10 @@ model Post {
   coverImageUrl  String?    @map("cover_image_url") @db.VarChar(500)
   category       String?    @db.VarChar(60) // kinh-nghiem | am-thuc | tin-tuc
   tags           Json?
+  topic          String?    @db.VarChar(40) // hanh-ly | thoi-tiet | dat-mui
+  relatedTourCodes Json?   @map("related_tour_codes")
+  checklist      Json?
+  isFeatured     Boolean    @default(false) @map("is_featured")
   status         PostStatus @default(draft)
   publishedAt    DateTime?  @map("published_at") @db.DateTime(3)
   authorId       Int?       @map("author_id")
@@ -272,6 +276,7 @@ model Faq {
   question  String  @db.VarChar(500)
   answer    String  @db.Text
   category  String  @default("general") @db.VarChar(40) // booking | transport | food | safety | weather
+  placement String? @db.VarChar(20) // home | contact | both
   sortOrder Int     @default(0) @map("sort_order")
   isActive  Boolean @default(true) @map("is_active")
 

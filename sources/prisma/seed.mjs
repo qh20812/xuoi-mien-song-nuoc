@@ -746,6 +746,9 @@ const POSTS = [
 Một lưu ý thực tế: rừng tràm rất ẩm và nhiều muỗi vào chiều tối. Bất kể mùa nào, kem chống muỗi và quần áo dài tay là thứ không thể thiếu.`,
     category: "kinh-nghiem",
     tags: ["u-minh-ha", "mua-nao", "sinh-thai"],
+    topic: "thoi-tiet",
+    relatedTourCodes: ["XMSN-4N3D", "XMSN-2N1D"],
+    isFeatured: false,
     coverImageUrl: IMG.kenhBeo,
     publishedAt: new Date("2026-09-15T08:00:00Z"),
   },
@@ -769,6 +772,19 @@ Một lưu ý thực tế: rừng tràm rất ẩm và nhiều muỗi vào chi�
 Cuối cùng: mang theo tiền mặt. Nhiều homestay và quán nhỏ trong vùng không quét thẻ.`,
     category: "kinh-nghiem",
     tags: ["u-minh-ha", "hanh-ly", "an-toan"],
+    topic: "hanh-ly",
+    relatedTourCodes: ["XMSN-4N3D", "XMSN-2N1D"],
+    checklist: [
+      "Kem chống muỗi có DEET hoặc picaridin",
+      "Quần dài và áo dài tay sáng màu",
+      "Dép quai hậu hoặc giày bám tốt",
+      "Một bộ quần áo khô và túi chống nước",
+      "Mũ rộng vành, áo chống nắng, kính râm",
+      "Thuốc say sóng, thuốc dị ứng, băng cá nhân",
+      "Pin dự phòng, đèn pin nhỏ, bản đồ offline",
+      "Tiền mặt cho homestay và quán nhỏ",
+    ],
+    isFeatured: true,
     coverImageUrl: IMG.rungTram,
     publishedAt: new Date("2026-09-28T08:00:00Z"),
   },
@@ -788,6 +804,9 @@ Cuối cùng: mang theo tiền mặt. Nhiều homestay và quán nhỏ trong vù
 **Lưu ý.** Nắng và gió biển mạnh, không có nhiều bóng râm. Mang nước, mũ, kem chống nắng. Cuối tuần đông hơn ngày thường, nên đi sớm để tránh xếp hàng mua vé.`,
     category: "kinh-nghiem",
     tags: ["dat-mui", "ca-mau", "mot-ngay"],
+    topic: "dat-mui",
+    relatedTourCodes: ["XMSN-4N3D", "XMSN-3N2D"],
+    isFeatured: false,
     coverImageUrl: IMG.tuongMe,
     publishedAt: new Date("2026-10-10T08:00:00Z"),
   },
@@ -802,6 +821,7 @@ const FAQS = [
     answer:
       "Không. Tất cả tour đều khởi hành từ TP.HCM bằng xe du lịch. Khách ở tỉnh khác tự túc di chuyển đến điểm hẹn.",
     category: "transport",
+    placement: "contact",
     sortOrder: 1,
   },
   {
@@ -816,6 +836,7 @@ const FAQS = [
     answer:
       "Đường xuồng an toàn nếu trẻ mặc áo phao (đơn vị cung cấp) và ngồi yên. Tuy nhiên rừng ẩm, nhiều muỗi, nên cân nhắc với trẻ dưới 3 tuổi hoặc trẻ dễ say sóng.",
     category: "safety",
+    placement: "contact",
     sortOrder: 3,
   },
   {
@@ -837,6 +858,7 @@ const FAQS = [
     answer:
       "Không. Website chỉ giữ chỗ, không thu tiền online. Sau khi gửi đơn, nhân viên gọi/Zalo xác nhận và hướng dẫn thanh toán theo thoả thuận.",
     category: "booking",
+    placement: "contact",
     sortOrder: 6,
   },
   {
@@ -844,6 +866,7 @@ const FAQS = [
     answer:
       "Có. Vào trang Tra cứu đơn, nhập mã đơn và số điện thoại để huỷ. Bạn có thể tự huỷ trước 3 ngày khởi hành; sát ngày hơn vui lòng gọi hotline. Vì chưa thanh toán online, việc hoàn cọc (nếu có) do bộ phận đặt tour xử lý.",
     category: "booking",
+    placement: "contact",
     sortOrder: 7,
   },
   {
@@ -852,6 +875,38 @@ const FAQS = [
       "Có. Các ngày lễ lớn và Tết Nguyên đán thường phụ thu 10–20% do giá khách sạn và dịch vụ tăng. Mức phụ thu được ghi rõ khi xác nhận đơn.",
     category: "booking",
     sortOrder: 8,
+  },
+  {
+    question: "Quy trình giữ chỗ và đặt cọc diễn ra như thế nào?",
+    answer:
+      "Bạn điền thông tin liên hệ và chọn chuyến mong muốn; website chưa thu tiền online. Trong thời gian giữ chỗ 24 giờ, nhân viên sẽ gọi hoặc nhắn Zalo để xác nhận và hướng dẫn đặt cọc. Đơn được xác nhận sau khi hoàn tất bước này.",
+    category: "booking",
+    placement: "home",
+    sortOrder: 9,
+  },
+  {
+    question: "Trẻ em mấy tuổi được miễn phí?",
+    answer:
+      "Trẻ dưới 5 tuổi được miễn phí và vẫn được xếp một chỗ ngồi riêng. Khi đặt, bạn ghi rõ nhu cầu ăn uống và ngủ nghỉ của bé để được tư vấn.",
+    category: "booking",
+    placement: "home",
+    sortOrder: 10,
+  },
+  {
+    question: "Có thể hủy hoặc dời lịch không?",
+    answer:
+      "Bạn có thể tự hủy trước 3 ngày khởi hành hoặc liên hệ hotline nếu sát ngày. Việc dời lịch được hỗ trợ miễn phí; nhân viên sẽ kiểm tra chỗ trống và hướng dẫn thủ tục.",
+    category: "booking",
+    placement: "home",
+    sortOrder: 11,
+  },
+  {
+    question: "Đón khách ở đâu?",
+    answer:
+      "Khách được đón tại trung tâm Quận 1 hoặc Bến xe Miền Tây. Điểm đón cụ thể sẽ được xác nhận qua điện thoại/Zalo trước ngày khởi hành.",
+    category: "transport",
+    placement: "home",
+    sortOrder: 12,
   },
 ];
 
