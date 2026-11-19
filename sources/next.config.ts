@@ -7,9 +7,10 @@ const buildCpus = Number(process.env.NEXT_BUILD_CPUS);
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
-  ...(Number.isInteger(buildCpus) && buildCpus > 0
-    ? { experimental: { cpus: buildCpus } }
-    : {}),
+  experimental: {
+    agentUpgrade: "security",
+    ...(Number.isInteger(buildCpus) && buildCpus > 0 ? { cpus: buildCpus } : {}),
+  },
   turbopack: {
     rules: {
       "*.css": {
