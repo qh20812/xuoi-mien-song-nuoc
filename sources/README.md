@@ -94,10 +94,14 @@ scripts/
 ```bash
 cp .env.example .env      # điền DB, AUTH_SECRET, IP_HASH_SALT
 npm install
-npx prisma migrate deploy # áp migration
-npm run db:seed           # seed dữ liệu thật (idempotent)
-npm run dev               # http://localhost:3000
+npm run db:migrate:dev    # áp migration lên DB dev
+npm run db:seed:dev       # seed dữ liệu dev (idempotent)
+npm run dev:local         # http://localhost:3000, dùng DEV_DATABASE_URL
 ```
+
+> `npm run dev` dùng `DATABASE_URL` — mặc định là **production**. Local dev nên dùng
+> `npm run dev:local`. Nếu dev server đang trỏ production, app sẽ in cảnh báo
+> `[db] Đang dùng database PRODUCTION ...`.
 
 Kiểm tra:
 
@@ -163,7 +167,8 @@ npm run db:verify:test
 
 | Lệnh | Việc |
 | --- | --- |
-| `npm run dev` / `build` / `start` | Next.js |
+| `npm run dev` / `build` / `start` | Next.js (`dev` dùng `DATABASE_URL` = production) |
+| `npm run dev:local` | Next.js dev với `DEV_DATABASE_URL` (khuyến nghị cho local) |
 | `npm run lint` | ESLint |
 | `npm test` | Toàn bộ test (time, booking, admin, jobs) |
 | `npm run test:booking` / `test:admin` / `test:jobs` | Test từng nhóm |

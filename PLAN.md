@@ -652,6 +652,8 @@ B0 ──▶ B1 ──▶ B2 ──▶ B3
 
 - [x] DB dev dùng cho smoke test (`DEV_DATABASE_URL` + `scripts/with-db.mjs dev`)
 - [x] `TEST_DATABASE_URL` trỏ DB test riêng, đã `db:migrate:test` + `db:seed:test`
+- [x] Migration D7 (`token_version`, `assigned_admin_id`) đã áp lên **production** ngày 19/11/2026
+- [x] Local dev dùng `npm run dev:local` (DB dev), không dùng `npm run dev` (production)
 
 ---
 
@@ -1359,9 +1361,14 @@ chạy một đợt migrate duy nhất.
 >   chuyển tới `/admin/login`); đăng nhập lại → 200.
 > - Cổng: `tsc` ✅ · `lint` 0 warning · `build` **50 route** · `npm test` **156/156** ·
 >   `test:coverage` exit 0 (**81.8 / 88.0 / 93.8**).
-> - **Bắt buộc khi deploy:** migration mới chỉ chạy trên dev/test. Production phải chạy
->   `npm run db:deploy` (`prisma migrate deploy` với `DATABASE_URL`) **trước** khi deploy code;
->   nếu không, truy vấn `Order`/`AdminUser` sẽ lỗi vì thiếu cột.
+> - **Bắt buộc khi deploy:** migration mới phải chạy trên production **trước** khi deploy code.
+>   Lần đầu bị bỏ sót: production thiếu `20261118090000_order_assignment` → admin login ném
+>   `P2022 token_version does not exist`. Đã backup 2 bảng bị ảnh hưởng
+>   (`admin_users`, `orders`) và áp `prisma migrate deploy` trên `xuoi_mien_song_nuoc_db`
+>   ngày **19/11/2026**; `migrate status` hiện `up to date`.
+> - **Local dev:** không dùng `npm run dev` (trỏ production). Dùng `npm run dev:local` —
+>   script override `DATABASE_URL` bằng `DEV_DATABASE_URL` trước khi spawn Next.js.
+>   `lib/prisma.ts` in cảnh báo nếu dev server vẫn trỏ production.
 
 ---
 
@@ -1644,7 +1651,8 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | Ngoài plan | — | `/diem-den/[slug]` chưa từng tồn tại dù mọi card link tới → D9.2 thêm mới, không phải sửa |
 | Ngoài plan | — | `Post` thiếu `topic`/`relatedTourCodes`/`checklist`/`isFeatured`; `Faq` thiếu `placement` → D9.1 thêm migration |
 | Ngoài plan | — | D8 render form đánh giá trong `components/lookup/order-lookup.tsx`, không phải `app/(site)/tra-cuu-don/page.tsx` (trang server không biết trạng thái đơn) |
-| Ngoài plan | — | Next.js 16.4.2 → 16.4.6 (bản vá bảo mật) đang ở nhánh `next-security-upgrade` trong worktree riêng, **chưa merge** vào checkout chính |
+| Ngoài plan | — | **19/11/2026:** admin login production lỗi `P2022 admin_users.token_version does not exist` vì migration D7 chưa lên production. Đã backup `admin_users`/`orders` rồi `prisma migrate deploy`; `migrate status` up to date. Local dev chuyển sang `npm run dev:local`; `lib/prisma.ts` cảnh báo nếu dev trỏ production |
+| Ngoài plan | — | Next.js 16.4.2 → 16.4.6 (bản vá bảo mật) đã merge vào `main` (commit `eaa1e24`, pin `07b9517`) |
 | §0 (quyết định 1) | "Server Actions chỉ cho form admin" | Đúng và đang giữ: **toàn bộ** admin dùng server action, trừ `/api/admin/orders*` + `/api/admin/login|logout|me` |
 | Ngoài plan | — | `app/admin/login/page.tsx:16` từng ném `Blocking Route` vì `new Date()` dưới `cacheComponents`; đã bọc `"use cache"` (xem D0) |
 | Ngoài plan | — | `prisma/seed.mjs` đã chạy lại trên **DB production** ngày 16/11/2026: tours/destinations/posts/faqs/media quay về nội dung seed. Nếu trước đó có sửa tay trên production thì đã bị ghi đè (không đụng `orders`, khách hàng, mật khẩu admin) |

@@ -11,7 +11,8 @@
 
 ```sh
 npm install            # postinstall runs prisma generate
-npm run dev
+npm run dev:local      # dev server dùng DEV_DATABASE_URL (khuyên dùng)
+npm run dev            # dev server dùng DATABASE_URL (production — tránh dùng)
 npm run lint           # bare `eslint`, ESLint 9 flat config
 npx tsc --noEmit
 npm run build
@@ -68,6 +69,7 @@ npm test
 ## Database safety
 
 - Unscoped Prisma and the plain `db:*` scripts use `DATABASE_URL`, which points at the Aiven **production** MySQL. Prefer `db:*:dev` / `db:*:test`; their `scripts/with-db.mjs` wrapper overrides `DATABASE_URL` (it works because `loadEnvFile` does not overwrite existing vars).
+- `npm run dev` also uses `DATABASE_URL` (production). Use `npm run dev:local` for local development; the app logs a warning if a dev server is pointed at the production database.
 - `npm run jobs:expire` mutates data (`-- --dry-run` to preview); `jobs:reconcile` only reports unless given `-- --fix`.
 - Seed is idempotent and refuses to run when `NODE_ENV=production` unless `SEED_ALLOW_PROD=1`. Re-seeding never resets an existing admin password, and only overwrites `settings` when `SEED_FORCE_SETTINGS=1`.
 
