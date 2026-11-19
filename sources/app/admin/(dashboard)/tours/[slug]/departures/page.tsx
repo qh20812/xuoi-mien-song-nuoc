@@ -16,6 +16,8 @@ import {
   updateDepartureAction,
 } from "./actions";
 
+export const instant = false;
+
 export const metadata = {
   title: "Chuyến khởi hành | Quản trị Xuôi Miền Sông Nước",
 };

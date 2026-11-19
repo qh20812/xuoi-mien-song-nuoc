@@ -18,6 +18,8 @@ import {
   updateOrderAction,
 } from "./actions";
 
+export const instant = false;
+
 export const metadata = {
   title: "Chi tiết đơn | Quản trị Xuôi Miền Sông Nước",
 };

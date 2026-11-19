@@ -18,6 +18,8 @@ import {
   toggleReviewFeaturedAction,
 } from "./actions";
 
+export const instant = false;
+
 export const metadata = {
   title: "Kiểm duyệt đánh giá | Quản trị Xuôi Miền Sông Nước",
 };

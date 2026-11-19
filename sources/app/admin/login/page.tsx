@@ -3,6 +3,8 @@ import logo from "@/public/logo-xuoi-mien-song-nuoc.png";
 import { sanitizeNextPath } from "@/lib/auth/next-path";
 import { LoginForm } from "./login-form";
 
+export const instant = false;
+
 export const metadata = {
   title: "Đăng nhập quản trị | Xuôi Miền Sông Nước",
 };

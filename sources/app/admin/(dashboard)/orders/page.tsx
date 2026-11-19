@@ -14,6 +14,8 @@ import {
   listAdminOrders,
 } from "@/server/booking/admin-queries";
 
+export const instant = false;
+
 export const metadata = {
   title: "Đơn hàng | Quản trị Xuôi Miền Sông Nước",
 };

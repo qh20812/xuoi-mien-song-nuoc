@@ -5,6 +5,8 @@ import { requireCapabilityPage } from "@/lib/auth/session";
 import { formatDateVN, formatVndDisplay } from "@/lib/format";
 import { listAdminTours } from "@/server/catalog/admin-departures";
 
+export const instant = false;
+
 export const metadata = {
   title: "Tour & chuyến khởi hành | Quản trị Xuôi Miền Sông Nước",
 };

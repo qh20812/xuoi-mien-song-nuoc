@@ -13,6 +13,8 @@ import { isAppError } from "@/server/errors";
 import { listMediaImageUrls } from "@/server/media/admin-media";
 import { setTourStatusAction, updateTourContentAction } from "./actions";
 
+export const instant = false;
+
 export const metadata = {
   title: "Sửa tour | Quản trị Xuôi Miền Sông Nước",
 };

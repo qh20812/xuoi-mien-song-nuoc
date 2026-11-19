@@ -5,6 +5,8 @@ import { siteSettings } from "@/lib/fixtures/site";
 import { getBookingSettings } from "@/server/settings/get-booking-settings";
 import { saveBookingSettingsAction } from "./actions";
 
+export const instant = false;
+
 export const metadata = {
   title: "Cấu hình đặt tour | Quản trị Xuôi Miền Sông Nước",
 };

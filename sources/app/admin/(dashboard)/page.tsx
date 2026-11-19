@@ -8,6 +8,8 @@ import { formatDateVN, formatVndDisplay } from "@/lib/format";
 import { countOrdersByStatus, listAdminOrders } from "@/server/booking/admin-queries";
 import { getSiteSettings } from "@/server/settings/get-site-settings";
 
+export const instant = false;
+
 export const metadata = {
   title: "Tổng quan | Quản trị Xuôi Miền Sông Nước",
 };

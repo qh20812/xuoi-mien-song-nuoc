@@ -9,6 +9,8 @@ import {
 } from "@/server/media/admin-media";
 import { createMediaAction, deleteMediaAction, updateMediaAction } from "./actions";
 
+export const instant = false;
+
 export const metadata = {
   title: "Thư viện ảnh | Quản trị Xuôi Miền Sông Nước",
 };

@@ -13,6 +13,8 @@ import {
 } from "@/server/contact/admin-messages";
 import { deleteContactMessageAction, setContactStatusAction } from "./actions";
 
+export const instant = false;
+
 export const metadata = {
   title: "Hộp thư liên hệ | Quản trị Xuôi Miền Sông Nước",
 };

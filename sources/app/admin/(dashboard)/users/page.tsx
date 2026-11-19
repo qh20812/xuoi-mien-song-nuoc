@@ -14,6 +14,8 @@ import {
   updateAdminUserAction,
 } from "./actions";
 
+export const instant = false;
+
 export const metadata = {
   title: "Tài khoản quản trị | Quản trị Xuôi Miền Sông Nước",
 };
