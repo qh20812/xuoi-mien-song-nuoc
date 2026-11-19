@@ -3,6 +3,7 @@
  * hoạt động trong database.
  */
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { ADMIN_COOKIE, verifyAdminToken } from "@/lib/auth/token";
@@ -73,6 +74,10 @@ export async function requireCapabilityPage(
   capability: Capability,
   nextPath?: string,
 ): Promise<AdminSession | null> {
+  // Page admin đọc cookie/JWT; connection() đảm bảo chạy lúc request,
+  // không prerender (jwtVerify dùng thời gian hiện tại).
+  await connection();
+
   const session = await requireAdminPage(nextPath);
   return can(session.role, capability) ? session : null;
 }
