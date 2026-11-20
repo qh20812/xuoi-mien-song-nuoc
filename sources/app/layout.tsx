@@ -22,7 +22,25 @@ const jetBrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+/**
+ * URL công khai dùng cho `metadataBase` (OG image, canonical). Thiếu biến này
+ * Next sẽ fallback `http://localhost:3000`, làm social preview trỏ sai khi lên
+ * production — nên đặt `NEXT_PUBLIC_SITE_URL` ở cả Build và Runtime.
+ */
+function resolveSiteUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (raw) {
+    try {
+      return new URL(raw).toString();
+    } catch {
+      // Env sai định dạng: rơi về localhost thay vì làm sập build.
+    }
+  }
+  return "http://localhost:3000";
+}
+
 export const metadata: Metadata = {
+  metadataBase: new URL(resolveSiteUrl()),
   title: {
     default: "Xuôi Miền Sông Nước – Tour miền Tây, U Minh Hạ, Đất Mũi",
     template: "%s | Xuôi Miền Sông Nước",

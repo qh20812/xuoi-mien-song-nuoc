@@ -2085,6 +2085,10 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | Ngoài plan | — | **21/11/2026 (E2):** trần upload hạ 8 MB → **4 MB** (`lib/media/limits.ts`), body route **4.5 MB**, client nén khi ảnh >**3.5 MB** (`lib/media/resize-for-upload.ts`, WebP q0.8 → fallback JPEG). Ảnh media cũ lớn hơn 4 MB vẫn đọc/render bình thường — giới hạn chỉ áp cho upload mới |
 | Ngoài plan | — | **21/11/2026 (E3):** route cron export thêm `handle*Cron(request)` vì `GET` có `await connection()` — gọi `GET` trong `node --test` sẽ ném “khoá request store”; test chỉ bỏ 2 dòng `GET`. CLI đổi `.mjs` → `.mts` (`node --import tsx`), `tsx` sang `dependencies`; note hết hạn đọc `holdHours` từ settings; `vercel.json` dùng `*/5` nên **Hobby sẽ fail deploy** (dùng Pro hoặc scheduler ngoài) |
 | Ngoài plan | — | **21/11/2026 (D10.5):** `/admin/audit` cột “Chi tiết” thôi in JSON thô — `lib/audit/meta.ts` + `components/admin/audit-meta.tsx` render nhãn tiếng Việt, thumbnail ảnh (local + Cloudinary), `from → to` theo entity, diff `settings.booking.update`, giá VND; JSON gốc vẫn còn sau toggle. Khoá lạ giữ nguyên key, khoá `password/hash/token/secret` bị che. Test +17, tổng **286**; coverage **87.38 / 88.26 / 93.54** |
+| Ngoài plan | — | **21/11/2026 (E0, một phần):** backup `media` (9 row) + `_prisma_migrations` ra `%TEMP%\\xmsn-deploy-backup-2026-11-20T17-14-10-686Z.json` (dump bằng raw SQL vì Prisma Client đã biết cột `public_id`); `prisma migrate deploy` áp `admin_audit_indexes` + `media_public_id`; `migrate status` **up to date**; query `media` có `publicId` chạy lại OK. **Chưa commit/push** |
+| Ngoài plan | — | **21/11/2026 (E3, Hobby):** `vercel.json` chỉ còn 2 cron **daily** (`reconcile-seats` 20:00 UTC, `expire-holds` 17:00 UTC làm lưới an toàn); job hết hạn 5 phút/lần chuyển sang `.github/workflows/expire-holds.yml` (secrets `SITE_URL`, `CRON_SECRET`). Pro thì đổi lại `*/5` và bỏ workflow |
+| Ngoài plan | — | **21/11/2026 (E4, một phần):** `.env` + `.env.example` hạ `connection_limit` **5 → 2** cho cả production/dev/test; rate limit vẫn in-memory (chấp nhận per-instance) |
+| Ngoài plan | — | **21/11/2026 (E5/E7):** `app/layout.tsx` thêm `metadataBase` từ `NEXT_PUBLIC_SITE_URL` (fallback localhost, env sai không sập build) nên OG image không còn `http://localhost:3000`; `proxy.ts` trả 404 cho `/admin` khi `VERCEL_ENV=preview` (escape `ALLOW_ADMIN_ON_PREVIEW=1`), README thêm mục Vercel + Deployment Protection. Build không còn warning `metadataBase` |
 
 ---
 
@@ -2092,24 +2096,29 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 
 > **Trạng thái 21/11/2026 (sau E2+E3):** Track A–D và **E2, E3 đã xong**, local gate xanh
 > (`tsc` · `lint` · `build` · **269 test** · coverage **86.96 / 88.26 / 93.42**).
-> **Chưa được deploy production ngay** vì còn E0 (push + migration production), E1 (project/env),
-> E4 (pool/rate limit) và E5–E7 (Preview smoke → cutover → docs).
+> **Chưa được deploy production ngay** vì còn E0 (push), E1 (project/env) và E5–E7
+> (Preview smoke → cutover → docs). Migration production **đã áp xong 21/11/2026**.
 
 ### 12.0 Bằng chứng hiện trạng
 
 | Kiểm tra | Kết quả |
 |---|---|
-| `git status -sb` | `main...origin/main [ahead 9]` + nhiều file `M/??` của D10.2–D10.4 và E2/E3 **chưa commit** |
+| `git status -sb` | `main` khớp `origin/main`; working tree còn **26 mục `M/??`** của E2/E3/D10.5 **chưa commit** |
 | `git ls-files sources/.env` | Không track; `.gitignore` có `.env*`, giữ `.env.example` |
-| `prisma migrate status` (prod) | **2 migration chưa áp:** `20261121100000_admin_audit_indexes`, `20261121110000_media_public_id` |
+| `prisma migrate status` (prod) | **Up to date** (21/11/2026, sau backup `media` 9 row) |
 | Vercel request body | Giới hạn **4.5 MB** cho Function → E2 đã hạ trần ảnh về **4 MB** + nén client (ngưỡng 3.5 MB) |
-| Vercel Cron | **Hobby chỉ 1 lần/ngày**; Pro mới chạy mỗi phút. Repo **đã có** `/api/jobs/*` + `vercel.json` (E3) |
+| Vercel Cron | **Hobby chỉ 1 lần/ngày** → `vercel.json` chỉ còn 2 cron daily; `expire-holds` 5 phút/lần chạy bằng GitHub Actions (E3) |
 | Rate limit | In-memory (`lib/rate-limit.ts`) → mỗi lambda một bucket, cold start reset (E4 chưa làm) |
-| DB pool | `DATABASE_URL` đang `connection_limit=5`; Vercel autoscale có thể vượt `max_connections` Aiven |
+| DB pool | `.env` + `.env.example` đã hạ `connection_limit` **5 → 2**; Vercel env Production phải đặt lại đúng chuỗi này |
 | Repo size | `sources/assets/images-originals/` ~119 MB tracked (không serve, nhưng làm clone/build nặng) |
 | Ảnh ngoài | Quét read-only dev + prod: **0 URL** ngoài `/images` hoặc Cloudinary |
 
 ### E0 · Chốt mã nguồn + migration production (bắt buộc trước mọi thứ)
+
+> **21/11/2026:** migration production **đã áp xong** — backup `media` (9 row) +
+> `_prisma_migrations` ghi ra `%TEMP%\\xmsn-deploy-backup-2026-11-20T17-14-10-686Z.json`,
+> `migrate deploy` chạy 2 migration, `migrate status` → *up to date*, query `media`
+> có `publicId` chạy được. **Còn lại: commit + push.**
 
 | | |
 |---|---|
@@ -2178,24 +2187,26 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | **vercel.json** | `sources/vercel.json`: `expire-holds` `*/5 * * * *`, `reconcile-seats` `0 3 * * *` |
 | **CLI** | `scripts/expire-holds.mts` + `scripts/reconcile-seats.mts` (thin wrapper, `process.loadEnvFile` rồi dynamic import service); `jobs:expire`/`jobs:reconcile` đổi sang `node --import tsx`; `tsx` chuyển sang **dependencies** để image `npm prune --omit=dev` vẫn chạy được |
 | **Sửa note** | Note lịch sử đọc `holdHours` từ `getBookingSettings()` qua `holdExpiryNote()` — không còn hardcode “sau 24 giờ” |
-| **Plan Vercel** | **Hobby chỉ cron 1 lần/ngày**; `*/5` sẽ fail deploy. Chọn **Pro** hoặc scheduler ngoài (GitHub Actions/cron-job.org) gọi route kèm secret |
+| **Plan Vercel** | **Hobby chỉ cron 1 lần/ngày**; `*/5` sẽ fail deploy → đã chốt: `vercel.json` 2 cron daily + GitHub Actions 5 phút/lần (`.github/workflows/expire-holds.yml`, secrets `SITE_URL`/`CRON_SECRET`) |
 | **Test** | `scripts/tests/jobs-route.test.mts` (503/401/200 + idempotent + `?fix=1`) gọi `handle*Cron` vì `connection()` ném lỗi ngoài request context Next; `scripts/tests/unit/cron-auth.test.ts`; `jobs.test.mjs` vẫn chạy CLI `.mts` |
 | **Done khi** | `curl` route với secret trả `{ ok, expired, seatsReleased }` · tạo đơn `new` quá hạn → job route chuyển `expired`, `seats_taken` giảm · cron hiện trong Vercel dashboard/log |
 
-`vercel.json` đặt trong `sources/`:
+`vercel.json` đặt trong `sources/` (cấu hình **Hobby**: 2 cron, mỗi cron 1 lần/ngày):
 
 ```json
 {
   "crons": [
-    { "path": "/api/jobs/expire-holds", "schedule": "*/5 * * * *" },
-    { "path": "/api/jobs/reconcile-seats", "schedule": "0 3 * * *" }
+    { "path": "/api/jobs/reconcile-seats", "schedule": "0 20 * * *" },
+    { "path": "/api/jobs/expire-holds", "schedule": "0 17 * * *" }
   ]
 }
 ```
 
-- Hobby sẽ **fail deploy** với `*/5` (chỉ 1 lần/ngày). Khi đó dùng Pro hoặc bỏ `vercel.json`
-  và gọi route bằng scheduler ngoài.
-- Cron của Vercel chạy theo **UTC**: `0 3 * * *` = 10:00 giờ Việt Nam.
+- Hobby sẽ **fail deploy** với `*/5` (chỉ 1 lần/ngày), nên `expire-holds` 5 phút/lần
+  chạy bằng `.github/workflows/expire-holds.yml` — cần secret `SITE_URL` + `CRON_SECRET`
+  (trùng biến Vercel). Hai cron daily ở trên là lưới an toàn.
+- Pro thì bỏ workflow và đổi `expire-holds` về `*/5 * * * *`.
+- Cron của Vercel chạy theo **UTC**: `0 20 * * *` = 03:00 VN; `0 17 * * *` = 00:00 VN.
 - Envelope thực tế: expire-holds trả
   `{ ok, scanned, expired, skipped, seatsReleased, remaining, orders }` (tối đa 100 order
   trong `orders`); reconcile-seats trả
@@ -2212,7 +2223,7 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | | |
 |---|---|
 | **Mục tiêu** | Không làm cạn connection Aiven và không mất tác dụng rate limit khi Vercel scale |
-| **DB** | Đổi `connection_limit` trong `DATABASE_URL` production về **1–2** (hoặc Prisma Accelerate/Aiven pooler); `connect_timeout=20`; theo dõi `Too many connections` |
+| **DB** | ✅ **21/11/2026:** `.env` + `.env.example` hạ `connection_limit` **5 → 2** (`connect_timeout=20` giữ nguyên); cần đặt lại đúng chuỗi này cho env Production trên Vercel. Nếu vẫn `Too many connections` → hạ 1 hoặc dùng Accelerate/pooler |
 | **Rate limit** | In-memory hiện tại chỉ đúng trên 1 process. Nếu mở public traffic, thay `lib/rate-limit.ts` bằng adapter Redis (Upstash `@upstash/ratelimit` + `@upstash/redis`), hàm async; cập nhật 8 call site (login action/route, orders, lookup, cancel, contact, reviews, media upload) |
 | **Tối thiểu trước go-live** | Ghi nhận giới hạn per-instance; admin login vẫn nên có thêm giới hạn theo email + theo dõi log |
 | **Test** | Nếu đổi async: mock Redis, test allowed/blocked/retryAfter; route tests reset state |
@@ -2223,13 +2234,13 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | | |
 |---|---|
 | **Mục tiêu** | Bắt lỗi Vercel/Linux/DB trước khi promote Production |
-| **Deploy** | Tạo Preview từ nhánh/PR sau khi E0–E3 xong; bật Deployment Protection nếu cần |
-| **Public smoke** | `/`, `/dat-tour`, `/tour/[slug]`, `/diem-den`, `/diem-den/[slug]`, `/am-thuc`, `/am-thuc/[slug]`, `/kinh-nghiem`, `/kinh-nghiem/[slug]`, `/lien-he` → 200; ảnh local + Cloudinary render |
+| **Deploy** | Tạo Preview từ nhánh/PR sau khi E0–E3 xong; bật **Deployment Protection → Vercel Authentication**; `DATABASE_URL` chỉ tick Production |
+| **Public smoke** | `/`, `/dat-tour`, `/tour/[slug]`, `/diem-den`, `/diem-den/[slug]`, `/am-thuc`, `/am-thuc/[slug]`, `/kinh-nghiem`, `/kinh-nghiem/[slug]`, `/lien-he` → 200; ảnh local + Cloudinary render; OG image trỏ domain thật (không còn `localhost`) |
 | **Booking smoke** | Chọn chuyến → đặt 2 người lớn + 1 em bé → DB có row, mã `XMSN-YYYY-NNNN`, `seats_taken` +3; tra cứu đúng; huỷ → nhả chỗ |
 | **Admin smoke** | Login owner; dashboard KPI; orders list/detail/confirm/cancel; users; account đổi mật khẩu → logout; audit; messages đổi trạng thái; settings lưu; CRUD nội dung → public đổi ngay (cache `updateTag`) |
 | **Media smoke** | Upload ảnh >4 MB từ điện thoại → nén → 201; ảnh trong datalist; xoá ảnh không dùng → asset mất; xoá ảnh đang dùng → 409 |
 | **Cron smoke** | Gọi route bằng secret; xem log Vercel; xác nhận `vercel.json` schedule |
-| **Bẫy** | Preview trỏ production DB → cấm thao tác ghi; kiểm tra `DATABASE_URL` theo environment trước khi bấm |
+| **Bẫy** | Preview trỏ production DB → `proxy.ts` đã trả 404 cho `/admin` khi `VERCEL_ENV=preview` (escape: `ALLOW_ADMIN_ON_PREVIEW=1`); vẫn kiểm `DATABASE_URL` theo environment trước khi bấm |
 | **Done khi** | Toàn bộ checklist trên xanh trên Preview; không có lỗi `P2022`, `P1001`, `413`, `FUNCTION_PAYLOAD_TOO_LARGE` trong log |
 
 ### E6 · Production cutover + rollback
@@ -2251,7 +2262,7 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | **Sửa** | `sources/README.md`: thay mục “Triển khai (VPS / Docker)” bằng **Vercel** (Root `sources`, env, migration trước deploy, cron Hobby/Pro, preview DB); giữ VPS/Docker ở phụ lục nếu vẫn hỗ trợ |
 | **Sửa** | `sources/README.md` bảng test/coverage cập nhật 257 case; thêm `test:audit`, `test:media` |
 | **Thêm** | `sources/vercel.json` (cron); `sources/.vercelignore` loại `assets/images-originals/`, `coverage/`, `scripts/tests/` khỏi upload nếu không cần build |
-| **Sửa** | `app/layout.tsx` (hoặc layout gốc) thêm `metadataBase` từ `NEXT_PUBLIC_SITE_URL` để hết warning build |
+| **Sửa** | ✅ `app/layout.tsx` đã thêm `metadataBase` từ `NEXT_PUBLIC_SITE_URL` (fallback `http://localhost:3000`, env sai định dạng không làm sập build); build hết warning `metadataBase` |
 | **Tuỳ chọn** | Chuyển `sources/assets/images-originals/` ra ngoài repo/Git LFS; thêm `engines.node = "22.x"` để khoá version Vercel |
 | **Done khi** | README không còn hướng dẫn VPS là mặc định · `vercel.json` hợp lệ · build không còn warning `metadataBase` · repo nhẹ hơn (nếu dọn assets) |
 

@@ -277,8 +277,8 @@ new ──pending──▶ pending ──confirm──▶ confirmed ──comple
 
 ## Job định kỳ
 
-Backend giả định job chạy ngoài tiến trình Next.js. Trên VPS dùng systemd timer
-(hoặc cron):
+Job là CLI trong `scripts/` và cron route `/api/jobs/*` (xem mục Vercel bên dưới
+cho lịch trên Vercel). Trên VPS dùng systemd timer (hoặc cron):
 
 ```ini
 # /etc/systemd/system/xmsn-expire.service
@@ -319,6 +319,51 @@ node --import tsx scripts/reconcile-seats.mts --fix
 ```
 
 Với Docker: `docker compose exec -T app node --import tsx scripts/expire-holds.mts`.
+
+## Triển khai (Vercel)
+
+Vercel build từ GitHub, **Root Directory = `sources`** (repo root không có
+`package.json`). Chọn Framework Next.js, Node **22.x**, region gần Aiven.
+
+| Biến | Build | Runtime | Ghi chú |
+|---|:--:|:--:|---|
+| `DATABASE_URL` | ✅ | ✅ | Build cần vì `generateStaticParams` đọc DB. Giữ `connection_limit=2&connect_timeout=20` |
+| `AUTH_SECRET` | ✅ | ✅ | ≥ 32 ký tự, giá trị riêng cho production |
+| `IP_HASH_SALT` | — | ✅ | Khác `AUTH_SECRET` |
+| `CLOUDINARY_URL` | ✅ | ✅ | Build dùng dựng `images.remotePatterns`; runtime upload/xoá |
+| `NEXT_PUBLIC_SITE_URL` | ✅ | ✅ | `https://<domain>` — dùng cho `metadataBase`/OG image |
+| `CRON_SECRET` | — | ✅ | Bắt buộc cho `/api/jobs/*` (thiếu → 503) |
+
+```bash
+# Từ sources/, trước khi promote Production:
+node scripts/with-db.mjs prod npx prisma migrate deploy
+node scripts/with-db.mjs prod npx prisma migrate status   # phải "up to date"
+```
+
+Migration **không** tự chạy trong build — phải chạy tay (có backup) trước khi
+deploy code mới, nếu không các cột mới sẽ ném `P2022`.
+
+### Cron trên Vercel
+
+- **Hobby**: tối đa 2 cron và **chỉ 1 lần/ngày**; lịch dày hơn (vd `*/5`) làm
+  **deploy fail**. `vercel.json` vì vậy chỉ đặt 2 job daily làm lưới an toàn:
+  - `reconcile-seats` — `0 20 * * *` (03:00 giờ VN)
+  - `expire-holds` — `0 17 * * *` (00:00 giờ VN)
+- Job hết hạn giữ chỗ 5 phút/lần chạy bằng **GitHub Actions**
+  (`.github/workflows/expire-holds.yml`). Tạo 2 secret trong repo:
+  `SITE_URL` (domain production) và `CRON_SECRET` (trùng biến trên Vercel).
+- Pro thì có thể bỏ workflow và đổi `expire-holds` thành `*/5 * * * *`.
+
+### Preview an toàn
+
+1. **Settings → Deployment Protection → Vercel Authentication** (Standard
+   Protection) để mọi Preview phải đăng nhập Vercel.
+2. **Settings → Environment Variables**: chỉ tick **Production** cho
+   `DATABASE_URL` (và nên cả `AUTH_SECRET`). Preview dùng DB riêng nếu cần; đừng
+   trỏ Preview vào DB production.
+3. `proxy.ts` đã chặn `/admin` khi `VERCEL_ENV=preview` (trả 404). Cần thử admin
+   trên Preview thì đặt `ALLOW_ADMIN_ON_PREVIEW=1` **chỉ cho môi trường Preview**
+   và chỉ khi Preview dùng DB riêng.
 
 ## Triển khai (VPS / Docker)
 
@@ -371,8 +416,11 @@ Lưu ý production:
 2. Thay hotline/Zalo placeholder trong bảng `settings`
    (`0900 000 000` / `0900000000`).
 3. Đặt `AUTH_SECRET`, `IP_HASH_SALT` thật; bật HTTPS.
-4. Cấu hình systemd timer cho `expire-holds` (5 phút) và `reconcile-seats` (1 ngày).
-5. Kiểm tra `nha-tho-tac-say` chưa có toạ độ (`lat/lng = null`) nếu hiển thị bản đồ.
+4. Job định kỳ: VPS dùng systemd timer; Vercel dùng `vercel.json` (daily) +
+   GitHub Actions 5 phút/lần cho `expire-holds` (xem mục “Triển khai (Vercel)”).
+5. Đặt `NEXT_PUBLIC_SITE_URL`, `CRON_SECRET` trên Vercel và bật Deployment
+   Protection cho Preview.
+6. Kiểm tra `nha-tho-tac-say` chưa có toạ độ (`lat/lng = null`) nếu hiển thị bản đồ.
 
 ## Ghi chú Next.js 16 (Cache Components)
 
