@@ -646,7 +646,11 @@ B0 ──▶ B1 ──▶ B2 ──▶ B3
   - [x] **D9.4** Món ăn — loader + admin CRUD + home/tour detail
   - [x] **D9.5** FAQ — loader + admin CRUD + home/liên hệ theo `placement`
   - [x] **D9.6** Xoá fixture domain + docs + ratchet coverage
-- [ ] **D10** Upload ảnh, màn audit log, badge tin mới
+- [ ] **D10** Hoàn thiện vận hành
+  - [x] **D10.1** Badge tin mới chưa đọc
+  - [ ] **D10.2** Đổi mật khẩu tự phục vụ + buộc đăng nhập lại
+  - [ ] **D10.3** Màn audit log + migration index
+  - [ ] **D10.4** Upload ảnh Cloudinary + chính sách URL ảnh
 
 ### Điều kiện chặn
 
@@ -1064,10 +1068,13 @@ mọi page/action đều có `requireAdminPage` (trừ login/logout), mọi API 
 ```
 npx tsc --noEmit            → 0 lỗi
 npm run lint                → 0 error, 0 warning
-npm run build               → 51 route
-npm test                    → 171/171
-npm run test:coverage       → exit 0 (all files ≈ 82.12 / 88.22 / 94.09; gate 80 / 88 / 92)
+npm run build               → xanh
+npm test                    → 224/224
+npm run test:coverage       → exit 0 (all files 86.75 / 88.62 / 93.91; gate 84 / 88 / 92)
 ```
+
+D10 sẽ thêm 2 route admin (`/admin/audit`, `/admin/account`) và mở rộng
+`/admin/media` bằng upload Cloudinary.
 
 **Không có API admin cho** departures / tours / media / reviews / settings / users — các
 domain này chỉ có server action. Đủ cho UI hiện tại; nếu cần tích hợp ngoài (app mobile,
@@ -1732,12 +1739,99 @@ Mỗi slice phải qua đủ cổng `tsc + lint + build + npm test` và smoke te
 
 ### D10 · Hoàn thiện vận hành — **TODO**
 
-| Hạng mục | Thiết kế | Bẫy |
-|---|---|---|
-| **Upload ảnh** | `POST /api/admin/media/upload` (multipart) → `sharp` resize 1920 + WebP q78 → lưu trữ → tạo `Media` row | Hệ thống file trên serverless/VPS là ephemeral ⇒ **không ghi vào `public/images`** trong production. `.env` đã có `CLOUDINARY_URL` → dùng Cloudinary (hoặc S3) và lưu URL trả về |
-| **Màn audit log** | `/admin/audit` (owner): lọc theo `entity`, `action`, `adminId`, khoảng ngày; read-only; phân trang | Bảng sẽ rất lớn → bắt buộc index + `take` giới hạn (đã có `@@index([entity, entityId, createdAt])`) |
-| **Badge tin mới** | Truyền `unreadMessages` từ layout (đã có `countContactMessagesByStatus`) xuống `AdminNavLinks` | Nav là client component → chỉ nhận số, không tự query |
-| **Đổi mật khẩu tự phục vụ** | Trang "Tài khoản của tôi" cho mọi role (không chỉ owner) | Gộp với `tokenVersion` ở D6 để đổi mật khẩu là huỷ phiên cũ |
+> **Quyết định đã chốt (21/11/2026)**
+>
+> | # | Hạng mục | Chốt |
+> |---|---|---|
+> | 1 | Lưu trữ ảnh | **Cloudinary** (`CLOUDINARY_URL` đã có trong `.env`) |
+> | 2 | Cách upload | **SDK `cloudinary`** + `sharp` (thêm cả hai vào `dependencies`) |
+> | 3 | Chính sách URL ảnh | **Cho phép Cloudinary trong toàn bộ ảnh nội dung**: tour, điểm đến, bài viết, món ăn, media |
+> | 4 | Xoá media | **Xoá asset Cloudinary**; lưu `Media.publicId`; chặn xoá nếu ảnh đang được dùng làm cover |
+> | 5 | Bộ lọc audit | **Entity select tĩnh + action nhập text (prefix)** + admin select + khoảng ngày |
+> | 6 | Đổi mật khẩu | **Buộc đăng nhập lại** (xoá cookie, `tokenVersion++`) |
+> | 7 | Nav | **Gom nhóm** + vùng nav cuộn trong sidebar, footer cố định |
+>
+> **Hệ quả quan trọng:** D10 mở lại `next.config.ts#images.remotePatterns` **chỉ cho host
+> `res.cloudinary.com`**. Đây là ngoại lệ hẹp của D0, không mở lại host ngoài tuỳ ý.
+> `lib/images.ts#toLocalImage` được mở rộng thành `toImageAsset` (local + Cloudinary).
+
+#### D10.1 · Badge tin mới
+
+| | |
+|---|---|
+| **Mục tiêu** | Hiện số tin liên hệ `new` trên mục “Hộp thư” ở sidebar + drawer mobile |
+| **Sửa** | `app/admin/(dashboard)/layout.tsx` · `components/admin/{admin-sidebar,admin-mobile-nav,admin-nav-links}.tsx` |
+| **Luồng** | Layout gọi `countContactMessagesByStatus()` (chỉ khi có `messages:read`) → `unreadMessages` → `AdminNavLinks` |
+| **UI** | Badge ẩn khi 0, cap `99+`; `aria-label="Hộp thư, N tin mới"`; không chỉ dựa vào màu |
+| **Bẫy** | Layout có thể không re-render sau khi đổi trạng thái tin → thêm `revalidatePath("/admin", "layout")` trong action đổi trạng thái/xoá tin nếu live test thấy stale |
+| **Done khi** | Gửi tin mới → badge tăng; đánh dấu đã đọc → badge giảm; 0 tin → không có badge |
+
+> **Đã làm & kiểm chứng**
+>
+> - **Helper:** `lib/contact/unread.ts#formatUnreadCount` — `0/âm/NaN → null`, `1–99` giữ nguyên,
+>   `≥100 → "99+"`; test `scripts/tests/unit/unread-count.test.ts` (2 case).
+> - **Layout:** `app/admin/(dashboard)/layout.tsx` gọi `countContactMessagesByStatus()` khi role
+>   có `messages:read`, truyền `unreadMessages` xuống sidebar + drawer mobile.
+> - **UI:** `AdminNavLinks` render badge `bg-clay` ở mục “Hộp thư”, ẩn khi 0, `aria-label`
+>   “Hộp thư, N tin mới”, badge `aria-hidden`.
+> - **Stale:** thêm `revalidatePath("/admin", "layout")` sau khi đổi trạng thái/xoá tin trong
+>   `app/admin/(dashboard)/messages/actions.ts`.
+> - **Live verify (dev:local):** seed 2 tin `new` → `/admin` có `aria-label="Hộp thư, 2 tin mới"`;
+>   chuyển 1 tin sang `read` → reload còn `"Hộp thư, 1 tin mới"`; xoá dữ liệu QA sau test.
+> - **Cổng:** `tsc` ✅ · `lint` ✅ · `build` ✅ · `npm test` **224/224** ·
+>   coverage **86.75 / 88.62 / 93.91** (gate 84/88/92).
+
+#### D10.2 · Đổi mật khẩu tự phục vụ
+
+| | |
+|---|---|
+| **Mục tiêu** | Mọi role tự đổi mật khẩu, huỷ phiên cũ bằng `tokenVersion` có sẵn |
+| **Tạo mới** | `app/admin/(dashboard)/account/{page.tsx,actions.ts}` · `components/admin/change-password-form.tsx` |
+| **Sửa** | `server/auth/admin-users.ts` thêm `changeOwnPassword` · `components/admin/admin-nav-links.tsx` · `app/admin/login/page.tsx` (đọc `?ok=password`) |
+| **Service** | Verify mật khẩu hiện tại bằng bcrypt; mật khẩu mới 8–200 ký tự, khác mật khẩu cũ; update hash + `tokenVersion: { increment: 1 }` trong transaction; audit `admin.password_self` (không ghi mật khẩu) |
+| **Sau khi lưu** | Xoá cookie `ADMIN_COOKIE`, redirect `/admin/login?ok=password` → buộc đăng nhập lại |
+| **Nav** | Đổi “Tài khoản” (owner, `/admin/users`) → **“Người dùng”**; thêm **“Tài khoản của tôi”** (`/admin/account`) |
+| **Test** | Sai mật khẩu hiện tại, mật khẩu yếu, trùng mật khẩu cũ, audit, `tokenVersion +1`, mật khẩu cũ fail / mới pass |
+| **Done khi** | Đổi mật khẩu → bị đăng xuất; đăng nhập bằng mật khẩu mới OK; mật khẩu cũ fail; audit có dòng `admin.password_self` |
+
+#### D10.3 · Màn audit log
+
+| | |
+|---|---|
+| **Mục tiêu** | Owner xem lịch sử thao tác admin, read-only, có lọc và phân trang |
+| **Migration** | Thêm index `@@index([createdAt])`, `@@index([adminId, createdAt])`, `@@index([action, createdAt])`, `@@index([entity, createdAt])`; giữ index cũ `[entity, entityId, createdAt]` |
+| **Tạo mới** | `server/audit/admin-audit.ts` · `lib/audit/labels.ts` · `app/admin/(dashboard)/audit/page.tsx` |
+| **Sửa** | `components/admin/admin-nav-links.tsx` (mục Audit, `audit:read`) |
+| **Service** | Filter entity exact + action prefix + adminId + `from`/`to` (ngày VN, `to` + 1 ngày exclusive); order `createdAt desc, id desc`; `pageSize` mặc định 50, cap 100; join admin name/email; admin đã xoá → “Hệ thống/đã xoá” |
+| **UI** | GET form lọc; bảng thời gian / admin / action / entity / entityId / meta; `meta` trong `<details><pre>`; phân trang giữ filter |
+| **Bảo mật** | `requireCapabilityPage("audit:read")` → chỉ owner; admin/editor vào URL thấy `AccessDenied` |
+| **Test** | Filter entity/action/admin/ngày, order, cap, invalid date, owner-only, 404/empty state |
+| **Done khi** | Lọc `entity=order` + `action=order.` ra đúng; `admin`/`editor` không vào được; bảng lớn vẫn phân trang nhanh |
+
+#### D10.4 · Upload ảnh Cloudinary
+
+| | |
+|---|---|
+| **Mục tiêu** | Upload ảnh thật, resize/WebP, lưu Cloudinary + `Media` row; ảnh dùng được ngay trong form nội dung |
+| **Dependencies** | Thêm trực tiếp `cloudinary` + `sharp` (hiện sharp chỉ là transitive của Next) |
+| **Schema/migration** | `Media.publicId String? @unique @map("public_id") @db.VarChar(255)` (asset Cloudinary; legacy row `null`) |
+| **URL policy** | `next.config.ts` thêm `images.remotePatterns` cho `res.cloudinary.com` (pathname ưu tiên `/<cloud_name>/image/upload/**`, fallback `/**` nếu build thiếu env); `lib/images.ts` thêm `toImageAsset` (local + Cloudinary), thay `toLocalImage` ở `lib/content/mappers.ts`, `server/content/posts-query.ts`, `server/catalog/list-bookable-tours.ts`, `lib/booking/success.ts` |
+| **Validator dùng chung** | `lib/media/image-url.ts` (`isManagedImageUrl`) thay regex `LOCAL_IMAGE` trong `server/media/admin-media.ts`, `server/catalog/admin-tours.ts`, `server/content/admin-{destinations,posts,cuisines}.ts`; thông báo lỗi “/images/… hoặc URL Cloudinary” |
+| **Storage adapter** | `server/media/cloudinary.ts`: cấu hình SDK từ `CLOUDINARY_URL`; `uploadBuffer(buffer)` dùng `uploader.upload_stream`; `destroy(publicId)`; tạo `thumbnailUrl` bằng `cloudinary.url(c_fill,w_320,h_320,q_auto,f_auto)`; nhận dependency để test mock |
+| **Upload service** | `server/media/upload-media.ts`: validate MIME (`jpeg/png/webp/avif`), size ≤ 8MB, `sharp` `limitInputPixels`, `.rotate()`, resize inside 1920, `.webp({ quality: 78 })`, đọc metadata; upload; tạo `Media` row (`url`, `thumbnailUrl`, `publicId`, `width/height`, title/alt/tags); audit `media.upload` |
+| **Route** | `POST /api/admin/media/upload`: `requireCapabilityApi("content:write")`, rate limit, `request.formData()`, trả `201 { ok: true, media }`; lỗi Cloudinary → `502 MEDIA_UPLOAD_FAILED` |
+| **UI** | `components/admin/media-upload-form.tsx` (client): chọn file, title/alt/tags, pending/error; `fetch` route rồi `router.refresh()`; `/admin/media` thêm khối upload, giữ form nhập URL local cũ |
+| **Xoá media** | Pre-check 4 bảng (`tour.coverImageUrl`, `destination.coverImageUrl`, `post.coverImageUrl`, `cuisine.imageUrl`) → `409 MEDIA_IN_USE`; nếu có `publicId` gọi `destroy(..., { invalidate: true })` chấp nhận kết quả `"ok"` hoặc `"not found"`; xoá row + audit `media.delete` |
+| **Bẫy** | Không ghi file vào `public/images` trên production; `next/image` cần remotePatterns; `sharp` phải là dependency trực tiếp; Cloudinary timeout → 1 retry, không tạo DB row dở |
+| **Test** | Unit: `isManagedImageUrl`, `toImageAsset`, sharp resize/format, signature/uploader mock; route: 401/403, sai MIME, quá size, Cloudinary lỗi; DB: tạo media + audit, xoá bị chặn khi đang dùng, xoá asset mock |
+| **Done khi** | Upload ảnh trên `/admin/media` → row DB + asset Cloudinary; ảnh hiện trong datalist và render được trên public; xoá ảnh không dùng → asset mất; xoá ảnh đang dùng → bị chặn |
+
+**Thứ tự D10:** `D10.1 → D10.2 → D10.3 → D10.4`.
+Mỗi slice qua `tsc + lint + build + npm test` và live smoke test trước khi sang slice kế.
+
+**Migration/deploy:** D10.3 và D10.4 mỗi slice một migration; chạy `db:migrate:dev` + `db:migrate:test`; production `prisma migrate deploy` **trước** khi deploy code. D10.4 cần `CLOUDINARY_URL` ở cả môi trường build và runtime.
+
+**Ước lượng thực tế:** D10.1 4–5 file; D10.2 4–5; D10.3 5–7 + migration; D10.4 10–14 + migration. Tổng ~23–31 file, không phải 3+3.
 
 ---
 
@@ -1748,13 +1842,16 @@ D0 ──▶ D1 ──▶ D2
  └──▶ D4 ──▶ D5
 D3 ──┐
 D5 ──┴──▶ D6 ──┬──▶ D7
-               └──▶ D10 (audit, badge, upload)
+               └──▶ D10.1 ──▶ D10.2 ──▶ D10.3 ──▶ D10.4
 D8 ──▶ (nuôi dữ liệu cho) D5 — ✅ đã xong
 D9.1 ──▶ D9.2 ──▶ D9.3 ──▶ D9.4 ──▶ D9.5 ──▶ D9.6
 ```
 
 - **D0 trước tất cả** — bỏ `remotePatterns` là điều kiện để `next/image` không nổ.
+  D10.4 **mở lại hẹp** cho `res.cloudinary.com`; không mở host ngoài tuỳ ý.
 - **D6 trước D7/D10** — ✅ đã xong; các phase sau chỉ cần thêm capability vào ma trận.
+- **D10 thứ tự:** badge → mật khẩu → audit → upload. Upload cuối vì đụng URL ảnh,
+  `next/image`, validator 5 domain và storage ngoài.
 - **D8 độc lập**, nhưng làm sớm thì D5 mới có dữ liệu để kiểm duyệt thật.
 - **D9 đổi kiến trúc render của storefront** nên làm sau khi admin backend ổn định; không trộn
   với D10. D9 làm **vertical slice** (D9.1 nền → D9.2 điểm đến → D9.3 bài viết → D9.4 món ăn →
@@ -1764,7 +1861,13 @@ D9.1 ──▶ D9.2 ──▶ D9.3 ──▶ D9.4 ──▶ D9.5 ──▶ D9.6
 
 | Rủi ro | Giảm thiểu |
 |---|---|
-| Ảnh DB cũ là URL ngoài → `next/image` ném lỗi runtime | `toLocalImage` chặn ở mọi chỗ đọc DB; grep `https://` trong `fixtures`/`seed` trước khi build |
+| Ảnh DB cũ là URL ngoài → `next/image` ném lỗi runtime | `toImageAsset` chỉ nhận local hoặc Cloudinary đúng path; grep `https://` lạ trong DB trước khi build |
+| D10.4: Cloudinary URL bị `next/image`/`toLocalImage` chặn | Mở `remotePatterns` hẹp cho `res.cloudinary.com`; thay `toLocalImage` bằng `toImageAsset`; validator ảnh dùng chung |
+| D10.4: xoá media làm hỏng ảnh cover đang dùng | Pre-check `tour/destination/post/cuisine` theo URL → `409 MEDIA_IN_USE` |
+| D10.4: xoá asset Cloudinary xong DB lỗi | `destroy` idempotent (`"ok"` hoặc `"not found"`), retry xoá DB; không tạo row dở khi upload lỗi |
+| D10.3: index cũ `[entity, entityId, createdAt]` không phủ feed/lọc | Migration thêm `createdAt`, `[adminId, createdAt]`, `[action, createdAt]`, `[entity, createdAt]` |
+| D10.1: badge stale sau khi đọc tin | `revalidatePath("/admin", "layout")` trong action đổi trạng thái/xoá tin nếu cần |
+| D10: sidebar 14 mục tràn viewport | Gom nhóm nav + vùng nav `overflow-y-auto`, footer cố định |
 | Admin sửa giá/chuyến khi chưa phân quyền | D6 làm trước D7; hiện tại chỉ nên cấp tài khoản `owner` cho người tin cậy |
 | Migration thêm cột chạy nhầm vào production | Dùng `node scripts/with-db.mjs dev npx prisma migrate dev`; `DATABASE_URL` chỉ dùng cho `migrate deploy` khi go-live |
 | `settings.booking` bị ghi đè làm mất `cancellationPolicy` | **Đã sửa** ở D2 (merge); test khoá lại |
@@ -1775,8 +1878,8 @@ D9.1 ──▶ D9.2 ──▶ D9.3 ──▶ D9.4 ──▶ D9.5 ──▶ D9.6
 | D9: `db:seed` ghi đè nội dung admin vừa sửa | Chỉ seed dev/test; ghi cảnh báo trong README; production dùng `SEED_FORCE_*` có kiểm soát |
 | D9: sửa DB tay nhưng cache `"use cache"` vẫn trả bản cũ | Admin action gọi `updateTag`; sửa tay phải restart dev hoặc gọi revalidate; ghi README |
 | D9: 4 màn admin mới làm sidebar quá dài | Thêm nhóm "Nội dung" hoặc kiểm tra breakpoint 1024/768 trước khi merge |
-| Upload ảnh ghi vào `public/` rồi mất khi deploy | Dùng Cloudinary/S3, không ghi filesystem |
-| JWT cũ vẫn dùng được sau khi đổi mật khẩu | `tokenVersion` ở D6 + kiểm trong `getAdminSession()` |
+| Upload ảnh ghi vào `public/` rồi mất khi deploy | Dùng Cloudinary, không ghi filesystem |
+| JWT cũ vẫn dùng được sau khi đổi mật khẩu | `tokenVersion` ở D7 + D10.2 tăng khi đổi mật khẩu; phiên cũ bị loại |
 
 ### 10.9 Khối lượng ước tính
 
@@ -1786,10 +1889,13 @@ D9.1 ──▶ D9.2 ──▶ D9.3 ──▶ D9.4 ──▶ D9.5 ──▶ D9.6
 | D7 | 2 (service, migration) | 4 | ✅ đã xong — kèm `tokenVersion` |
 | D8 | 4 | 3 | ✅ đã xong — kèm `test:reviews` + ratchet coverage |
 | D9 | 2 service/domain + 4 mapper + migration + 12 trang admin/public | ~25 | 6 slice: D9.1 nền → D9.2 điểm đến → D9.3 bài viết → D9.4 món ăn → D9.5 FAQ → D9.6 dọn fixture |
-| D10 | 3 | 3 | Upload cần quyết định Cloudinary trước |
+| D10.1 | — | 4–5 file | Badge tin mới |
+| D10.2 | 3–4 file | 2–3 file | Trang account + service + nav |
+| D10.3 | 3–4 file + migration | 2–3 file | Audit service/page + index |
+| D10.4 | 9–12 file + migration | 5–8 file | Cloudinary SDK, sharp, URL policy, upload route/UI |
 
-**Thứ tự thực thi: D9 (6 slice) → D10.**
-D8 đã xong; D9 làm trước vì yêu cầu hiện tại là đưa nội dung public sang DB. D10 để sau.
+**Thứ tự thực thi: D10.1 → D10.2 → D10.3 → D10.4.**
+D9 đã xong; D10 là track cuối. Mỗi slice phải qua `tsc + lint + build + npm test` trước khi sang slice kế.
 
 ---
 
@@ -1799,13 +1905,13 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 
 | Mục | Nội dung cũ | Thực tế hiện tại |
 |---|---|---|
-| §B1 (ghi chú) | "URL ảnh trong seed là `upload.wikimedia.org` → đã có trong `next.config.ts#images.remotePatterns`" | **Sai**: `remotePatterns` đã bị xoá ở D0. Mọi ảnh phải là `/images/*.webp`; dữ liệu DB cũ đi qua `lib/images.ts#toLocalImage` |
-| §B1 (`coverImage`) | `coverImage: { src: tour.coverImageUrl, … }` | Phải bọc `toLocalImage(tour.coverImageUrl, tour.name)` — nếu không, một row còn URL ngoài sẽ làm sập trang |
+| §B1 (ghi chú) | "URL ảnh trong seed là `upload.wikimedia.org` → đã có trong `next.config.ts#images.remotePatterns`" | **Sai**: `remotePatterns` đã bị xoá ở D0. Ảnh hiện tại phải là `/images/*.webp`; dữ liệu DB cũ đi qua `lib/images.ts#toLocalImage`. D10.4 sẽ mở **ngoại lệ hẹp** cho `res.cloudinary.com` và đổi sang `toImageAsset` |
+| §B1 (`coverImage`) | `coverImage: { src: tour.coverImageUrl, … }` | Phải bọc `toLocalImage(tour.coverImageUrl, tour.name)` — nếu không, một row còn URL ngoài sẽ làm sập trang. D10.4 đổi thành `toImageAsset` (local + Cloudinary) |
 | §B4 | "Trang `/admin/messages` … để phase sau" | **Đã xong** ở D3 |
-| §T4 | "Tổng 111 test case" · coverage 74.31 / 90.24 / 94.56 | Sau D9: **222 test**, coverage **86.73 / 88.53 / 93.86** (gate full **84 / 88 / 92**, unit **96 / 92 / 93**) |
+| §T4 | "Tổng 111 test case" · coverage 74.31 / 90.24 / 94.56 | Sau D10.1: **224 test**, coverage **86.75 / 88.62 / 93.91** (gate full **84 / 88 / 92**, unit **96 / 92 / 93**) |
 | §T0 | `helpers/factories.ts` là nguồn tạo dữ liệu test duy nhất | Vẫn đúng, nhưng `scripts/tests/admin-content.test.mts` tự tạo dữ liệu riêng (chuyến 2031, media, review, admin) và **khôi phục** settings/tour trong `after()` |
 | §9.6 | Track C: 5 file mới | Không đổi; Track D thêm 8 trang admin + 7 service trước D9, và D9 dự kiến thêm 4 domain nội dung (12 trang admin/public + 8 service) |
-| §10.0 (đo lúc viết plan) | `build 50 route` · `npm test 156/156` · coverage 81.8 / 88.0 / 93.8 (gate 72 / 88 / 92) | Sau D9: **222 test**, coverage **86.73 / 88.53 / 93.86** (gate full **84 / 88 / 92**); 4 domain nội dung public đã đọc DB |
+| §10.0 (đo lúc viết plan) | `build 50 route` · `npm test 156/156` · coverage 81.8 / 88.0 / 93.8 (gate 72 / 88 / 92) | Sau D10.1: **224 test**, coverage **86.75 / 88.62 / 93.91** (gate full **84 / 88 / 92**); 4 domain nội dung public đã đọc DB |
 | §D9 (bảng cũ) | "tách 5 bước" · D9.1 fallback fixture · D9.5 xoá `lib/fixtures/*` trừ `site.ts` | Đổi thành **6 slice** D9.1–D9.6; fallback chỉ tạm đến D9.6 rồi dùng empty state; giữ `site.ts`, `home.ts` (tours/journey), `tour-details.ts` (lịch trình) |
 | Ngoài plan | — | `/diem-den/[slug]` chưa từng tồn tại dù mọi card link tới → D9.2 thêm mới, không phải sửa |
 | Ngoài plan | — | D9.2 loại `server/content/public-*.ts` khỏi coverage (wrapper `"use cache"`/`cacheLife` chỉ chạy trong Next runtime); query + admin service vẫn được test |
@@ -1817,6 +1923,10 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | Ngoài plan | — | **20/11/2026:** production FAQ trước D9.5 vẫn là 8 row `placement = null`. Đã backup `faqs` (`%TEMP%\xmsn-faq-backup-*`), gán `contact` cho 5 câu liên hệ và thêm 4 FAQ `home` (sort 9–12); 3 câu chủ đề còn `null` |
 | Ngoài plan | — | D9.6: đã xoá `lib/fixtures/{destinations,posts,cuisines,faqs}.ts`; `home.ts` chỉ còn tours/journey, `tour-details.ts` bỏ `destinations`/`cuisines`. `TourDestinations` nhận prop `destinations`; `HomePageData`/`TourDetailData` thu gọn |
 | Ngoài plan | — | D9.6: `/diem-den/[slug]` thiếu `export const instant = false` (bỏ sót ở D9.2) → đã thêm. Coverage gate full lines **80 → 84**; branches/functions giữ 88/92 |
+| Ngoài plan | — | **21/11/2026:** chốt D10 — Cloudinary + SDK `cloudinary` + `sharp` trực tiếp; cho phép URL Cloudinary trong toàn bộ ảnh nội dung; xoá asset khi xoá media; audit lọc entity/action/admin/ngày; đổi mật khẩu buộc đăng nhập lại; nav gom nhóm + cuộn |
+| Ngoài plan | — | D10.4 sẽ thêm `Media.publicId` + mở `next.config.ts#images.remotePatterns` **hẹp** cho `res.cloudinary.com`; `lib/images.ts#toLocalImage` mở rộng thành `toImageAsset`. Đây là ngoại lệ hẹp của D0, không mở host ngoài tuỳ ý |
+| Ngoài plan | — | D10.3 sẽ thêm 4 index cho `admin_audit_logs` (`createdAt`, `adminId+createdAt`, `action+createdAt`, `entity+createdAt`); index `[entity, entityId, createdAt]` hiện tại không phủ feed toàn cục |
+| Ngoài plan | — | **21/11/2026:** D10.1 dùng `lib/contact/unread.ts#formatUnreadCount` (cap `99+`) + `revalidatePath("/admin", "layout")` sau khi đổi trạng thái/xoá tin để badge không stale |
 | Ngoài plan | — | `Post` thiếu `topic`/`relatedTourCodes`/`checklist`/`isFeatured`; `Faq` thiếu `placement` → D9.1 thêm migration |
 | Ngoài plan | — | D8 render form đánh giá trong `components/lookup/order-lookup.tsx`, không phải `app/(site)/tra-cuu-don/page.tsx` (trang server không biết trạng thái đơn) |
 | Ngoài plan | — | **19/11/2026:** admin login production lỗi `P2022 admin_users.token_version does not exist` vì migration D7 chưa lên production. Đã backup `admin_users`/`orders` rồi `prisma migrate deploy`; `migrate status` up to date. Local dev chuyển sang `npm run dev:local`; `lib/prisma.ts` cảnh báo nếu dev trỏ production |

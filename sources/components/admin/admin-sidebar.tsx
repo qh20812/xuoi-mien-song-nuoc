@@ -6,10 +6,16 @@ import { AdminNavLinks } from "@/components/admin/admin-nav-links";
 type AdminSidebarProps = {
   admin: { name: string; email: string };
   capabilities: readonly string[];
+  unreadMessages: number;
   logoutAction: () => Promise<void>;
 };
 
-export function AdminSidebar({ admin, capabilities, logoutAction }: AdminSidebarProps) {
+export function AdminSidebar({
+  admin,
+  capabilities,
+  unreadMessages,
+  logoutAction,
+}: AdminSidebarProps) {
   return (
     <aside className="hidden bg-ink lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-[248px] lg:shrink-0 lg:flex-col">
       <Link
@@ -34,7 +40,10 @@ export function AdminSidebar({ admin, capabilities, logoutAction }: AdminSidebar
       </Link>
 
       <div className="mt-2">
-        <AdminNavLinks capabilities={capabilities} />
+        <AdminNavLinks
+          capabilities={capabilities}
+          unreadMessages={unreadMessages}
+        />
       </div>
 
       <div className="mt-auto border-t border-contrast-on-accent/10 px-5 py-4">

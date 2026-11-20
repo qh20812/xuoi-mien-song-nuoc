@@ -10,10 +10,16 @@ import { AdminNavLinks } from "@/components/admin/admin-nav-links";
 type AdminMobileNavProps = {
   admin: { name: string; email: string };
   capabilities: readonly string[];
+  unreadMessages: number;
   logoutAction: () => Promise<void>;
 };
 
-export function AdminMobileNav({ admin, capabilities, logoutAction }: AdminMobileNavProps) {
+export function AdminMobileNav({
+  admin,
+  capabilities,
+  unreadMessages,
+  logoutAction,
+}: AdminMobileNavProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -114,6 +120,7 @@ export function AdminMobileNav({ admin, capabilities, logoutAction }: AdminMobil
 
             <AdminNavLinks
               capabilities={capabilities}
+              unreadMessages={unreadMessages}
               onNavigate={() => setOpen(false)}
             />
 

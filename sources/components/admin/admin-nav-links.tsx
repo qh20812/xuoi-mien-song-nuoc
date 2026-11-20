@@ -17,6 +17,7 @@ import {
   Utensils,
 } from "lucide-react";
 import type { Capability } from "@/server/auth/permissions";
+import { formatUnreadCount } from "@/lib/contact/unread";
 import { cn } from "@/lib/utils";
 
 type AdminLink = {
@@ -120,18 +121,26 @@ type AdminNavLinksProps = {
   onNavigate?: () => void;
   /** Quyền của admin đang đăng nhập — mục thiếu quyền sẽ bị ẩn. */
   capabilities: readonly string[];
+  /** Số tin liên hệ `new`; 0 hoặc âm thì không render badge. */
+  unreadMessages?: number;
 };
 
-export function AdminNavLinks({ onNavigate, capabilities }: AdminNavLinksProps) {
+export function AdminNavLinks({
+  onNavigate,
+  capabilities,
+  unreadMessages = 0,
+}: AdminNavLinksProps) {
   const pathname = usePathname();
   const links = ADMIN_LINKS.filter(
     (link) => !link.capability || capabilities.includes(link.capability),
   );
+  const unreadLabel = formatUnreadCount(unreadMessages);
 
   return (
     <nav aria-label="Điều hướng quản trị" className="flex flex-col gap-1 px-3">
       {links.map(({ href, label, icon: Icon, exact }) => {
         const active = exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+        const badge = href === "/admin/messages" ? unreadLabel : null;
 
         return (
           <Link
@@ -139,6 +148,7 @@ export function AdminNavLinks({ onNavigate, capabilities }: AdminNavLinksProps) 
             href={href}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
+            aria-label={badge ? `${label}, ${badge} tin mới` : undefined}
             className={cn(
               "relative flex min-h-11 items-center gap-3 rounded-md px-3 text-[13px] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 focus-visible:ring-offset-ink focus-visible:outline-none",
               active
@@ -154,6 +164,14 @@ export function AdminNavLinks({ onNavigate, capabilities }: AdminNavLinksProps) 
             ) : null}
             <Icon aria-hidden="true" className="size-[18px] shrink-0" />
             <span>{label}</span>
+            {badge ? (
+              <span
+                aria-hidden="true"
+                className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-clay px-1.5 py-0.5 text-[10px] leading-none font-semibold text-contrast-on-accent tabular-nums"
+              >
+                {badge}
+              </span>
+            ) : null}
           </Link>
         );
       })}

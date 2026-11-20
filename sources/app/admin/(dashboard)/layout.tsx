@@ -2,7 +2,8 @@ import { connection } from "next/server";
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { requireAdminPage } from "@/lib/auth/session";
-import { capabilitiesFor } from "@/server/auth/permissions";
+import { can, capabilitiesFor } from "@/server/auth/permissions";
+import { countContactMessagesByStatus } from "@/server/contact/admin-messages";
 import { logoutAction } from "./actions";
 
 // Admin đọc cookie phiên trước khi render; cho phép blocking thay vì instant.
@@ -18,6 +19,9 @@ export default async function AdminDashboardLayout({
 
   const admin = await requireAdminPage("/admin");
   const capabilities = capabilitiesFor(admin.role);
+  const unreadMessages = can(admin.role, "messages:read")
+    ? ((await countContactMessagesByStatus()).new ?? 0)
+    : 0;
 
   return (
     <div className="min-h-[100dvh] bg-canvas text-ink">
@@ -25,6 +29,7 @@ export default async function AdminDashboardLayout({
         <AdminSidebar
           admin={admin}
           capabilities={capabilities}
+          unreadMessages={unreadMessages}
           logoutAction={logoutAction}
         />
 
@@ -32,6 +37,7 @@ export default async function AdminDashboardLayout({
           <AdminMobileNav
             admin={admin}
             capabilities={capabilities}
+            unreadMessages={unreadMessages}
             logoutAction={logoutAction}
           />
 

@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireCapabilityAction } from "@/lib/auth/session";
@@ -33,6 +34,7 @@ export async function setContactStatusAction(formData: FormData) {
   let target: string;
   try {
     await setContactMessageStatus(id.data, status, admin.id);
+    revalidatePath("/admin", "layout");
     target = returnTo;
   } catch (error) {
     const message = isAppError(error) ? error.message : "Không cập nhật được";
@@ -53,6 +55,7 @@ export async function deleteContactMessageAction(formData: FormData) {
   let target: string;
   try {
     await deleteContactMessage(id.data, admin.id);
+    revalidatePath("/admin", "layout");
     target = returnTo;
   } catch (error) {
     const message = isAppError(error) ? error.message : "Không xoá được";
