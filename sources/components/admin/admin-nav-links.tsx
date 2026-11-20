@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
+  CircleHelp,
   ClipboardList,
   Images,
   Inbox,
@@ -74,6 +75,13 @@ const ADMIN_LINKS: AdminLink[] = [
     href: "/admin/cuisines",
     label: "Món ăn",
     icon: Utensils,
+    exact: false,
+    capability: "content:write",
+  },
+  {
+    href: "/admin/faqs",
+    label: "FAQ",
+    icon: CircleHelp,
     exact: false,
     capability: "content:write",
   },

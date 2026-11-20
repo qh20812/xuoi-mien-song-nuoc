@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
-import type { FaqRecord } from "@/lib/fixtures/faqs";
+import type { PublicFaqRecord } from "@/lib/contracts/faq";
 
 type ContactFaqProps = {
-  faqs: FaqRecord[];
+  faqs: PublicFaqRecord[];
 };
 
 export function ContactFaq({ faqs }: ContactFaqProps) {
@@ -30,26 +30,33 @@ export function ContactFaq({ faqs }: ContactFaqProps) {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-x-8 md:grid-cols-2">
-        {faqs.map((faq, index) => (
-          <details
-            key={faq.question}
-            open={index === 0}
-            className="group border-t border-line py-1"
-          >
-            <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-5 py-4 [&::-webkit-details-marker]:hidden">
-              <span className="font-display text-lg leading-snug font-semibold text-ink md:text-xl">
-                {faq.question}
-              </span>
-              <ChevronDown
-                aria-hidden="true"
-                className="size-4 shrink-0 text-sage transition-transform group-open:rotate-180"
-              />
-            </summary>
-            <p className="max-w-[65ch] pb-5 text-sm leading-7 text-sage">
-              {faq.answer}
-            </p>
-          </details>
-        ))}
+        {faqs.length === 0 ? (
+          <p className="border-t border-line pt-5 text-sm leading-6 text-sage md:col-span-2">
+            Câu hỏi thường gặp đang được cập nhật. Bạn có thể gửi lời nhắn ở trên
+            để được hỗ trợ trực tiếp.
+          </p>
+        ) : (
+          faqs.map((faq, index) => (
+            <details
+              key={faq.question}
+              open={index === 0}
+              className="group border-t border-line py-1"
+            >
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-5 py-4 [&::-webkit-details-marker]:hidden">
+                <span className="font-display text-lg leading-snug font-semibold text-ink md:text-xl">
+                  {faq.question}
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="size-4 shrink-0 text-sage transition-transform group-open:rotate-180"
+                />
+              </summary>
+              <p className="max-w-[65ch] pb-5 text-sm leading-7 text-sage">
+                {faq.answer}
+              </p>
+            </details>
+          ))
+        )}
       </div>
     </section>
   );

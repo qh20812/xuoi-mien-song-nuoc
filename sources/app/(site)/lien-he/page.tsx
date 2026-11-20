@@ -5,8 +5,8 @@ import { ContactChannels } from "@/components/contact/contact-channels";
 import { ContactFaq } from "@/components/contact/contact-faq";
 import { ContactForm } from "@/components/contact/contact-form";
 import { Container } from "@/components/ui/container";
-import { faqs } from "@/lib/fixtures/faqs";
 import { siteSettings } from "@/lib/fixtures/site";
+import { listContactFaqs } from "@/server/content/public-faqs";
 
 export const metadata: Metadata = {
   title: "Liên hệ và hỗ trợ",
@@ -14,17 +14,8 @@ export const metadata: Metadata = {
     "Liên hệ Xuôi Miền Sông Nước để được tư vấn tour, kiểm tra đơn giữ chỗ hoặc trao đổi nhu cầu riêng qua hotline và Zalo.",
 };
 
-const CONTACT_QUESTIONS = [
-  "Đặt tour có cần thanh toán trước không?",
-  "Có thể hủy đơn đã đặt không?",
-  "Đi U Minh Hạ có nguy hiểm cho trẻ nhỏ không?",
-  "Tour có bao gồm vé máy bay hoặc tàu không?",
-];
-
-export default function ContactPage() {
-  const contactFaqs = CONTACT_QUESTIONS.map((question) =>
-    faqs.find((faq) => faq.question === question),
-  ).filter((faq): faq is (typeof faqs)[number] => Boolean(faq));
+export default async function ContactPage() {
+  const contactFaqs = await listContactFaqs();
 
   return (
     <Container className="pt-10 pb-16 md:pt-14 md:pb-24">

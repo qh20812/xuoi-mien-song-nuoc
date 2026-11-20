@@ -12,6 +12,7 @@ import { closingImage, heroImage } from "@/lib/fixtures/home-media";
 import { siteSettings } from "@/lib/fixtures/site";
 import { listHomeCuisines } from "@/server/content/public-cuisines";
 import { listHomeDestinations } from "@/server/content/public-destinations";
+import { listHomeFaqs } from "@/server/content/public-faqs";
 
 export const metadata: Metadata = {
   title: "Tour miền Tây, U Minh Hạ, Đất Mũi",
@@ -20,9 +21,10 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const [destinations, cuisines] = await Promise.all([
+  const [destinations, cuisines, faqs] = await Promise.all([
     listHomeDestinations(4),
     listHomeCuisines(6),
+    listHomeFaqs(),
   ]);
 
   return (
@@ -33,7 +35,7 @@ export default async function HomePage() {
       <JourneySection legs={homePageData.journey} />
       <DestinationsSection destinations={destinations} />
       <CuisineSection cuisines={cuisines} />
-      <FaqSection faqs={homePageData.faqs} settings={siteSettings} />
+      <FaqSection faqs={faqs} settings={siteSettings} />
       <HomeCtaSection image={closingImage} settings={siteSettings} />
     </>
   );

@@ -644,7 +644,7 @@ B0 ──▶ B1 ──▶ B2 ──▶ B3
   - [x] **D9.2** Điểm đến — loader + `/diem-den/[slug]` + admin CRUD + cache
   - [x] **D9.3** Bài viết — loader + admin CRUD + featured theo DB
   - [x] **D9.4** Món ăn — loader + admin CRUD + home/tour detail
-  - [ ] **D9.5** FAQ — loader + admin CRUD + home/liên hệ theo `placement`
+  - [x] **D9.5** FAQ — loader + admin CRUD + home/liên hệ theo `placement`
   - [ ] **D9.6** Xoá fixture domain + docs + ratchet coverage
 - [ ] **D10** Upload ảnh, màn audit log, badge tin mới
 
@@ -1610,6 +1610,32 @@ không ai thấy** — đúng như đã cảnh báo khi chốt phạm vi P4.
 | **Test** | Placement/active/order + admin service |
 | **Done khi** | Sửa FAQ trong admin → home + `/lien-he` đổi ngay; tắt `isActive` thì biến mất; không còn phụ thuộc text câu hỏi |
 
+> **Đã làm & kiểm chứng**
+>
+> - **Loader:** `server/content/faqs-query.ts` + `server/content/public-faqs.ts`
+>   (`"use cache"`, `cacheLife("max")`, `cacheTag("content:faqs")`). Chỉ lấy `isActive = true`;
+>   home `placement in (home, both)`, contact `placement in (contact, both)`; order
+>   `sortOrder asc, id asc`; map qua `toPublicFaqRecord`.
+> - **Public:** `app/(site)/page.tsx` dùng `listHomeFaqs()`; `/lien-he` dùng
+>   `listContactFaqs()`, bỏ `CONTACT_QUESTIONS` và so khớp nguyên văn câu hỏi.
+>   `ContactFaq` nhận `PublicFaqRecord[]` từ `lib/contracts/faq`, có empty state khi DB rỗng;
+>   `FaqSection` vẫn tự ẩn khi không có câu hỏi.
+> - **Admin:** `server/content/admin-faqs.ts` + `/admin/faqs` (list/create/edit/delete);
+>   form câu hỏi, trả lời, chủ đề, vị trí (`home | contact | both | không đặt`), thứ tự,
+>   `isActive`; audit `faq.create|update|delete`; action gọi `updateTag("content:faqs")`.
+>   Thêm `lib/content/faq-options.ts` (6 chủ đề + nhãn vị trí) và menu admin "FAQ".
+> - **Tests:** `content-faqs.test.mts` (8 case): placement/active/order, CRUD + audit,
+>   tắt active biến khỏi public, validate, 404. Thêm unit `faq-options`. Tổng
+>   `npm test` **222/222**.
+> - **Coverage:** **86.73 / 88.53 / 93.86** (gate 80/88/92).
+> - **Build:** `/lien-he` là `○`; `/admin/faqs` là `ƒ`, `/admin/faqs/[id]` là `◐`.
+> - **Live verify (dev:local):** `/` có 4 FAQ trang chủ; `/lien-he` có FAQ liên hệ và
+>   **không** lộ câu hỏi home-only ("Đón khách ở đâu?"); `/admin/faqs` list + form và
+>   `/admin/faqs/25` render đúng; log không có Blocking/unstable/prod warning.
+> - **Production:** đã backup `faqs` vào `%TEMP%\xmsn-faq-backup-*`, gán `placement = contact`
+>   cho 5 câu hỏi liên hệ cũ và thêm 4 FAQ `placement = home` (sort 9–12). Tổng 12 FAQ,
+>   khớp seed dev/test; 3 câu chủ đề còn lại vẫn `placement = null`.
+
 #### D9.6 · Dọn fixture + docs + khoá coverage
 
 | | |
@@ -1756,6 +1782,8 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | Ngoài plan | — | D9.3 đổi `RelatedToursCta` sang type `PostRelatedTour` (không cần `TourDetailData` đầy đủ); `TourDetailData[]` vẫn assignable nên trang listing cũ không phải sửa |
 | Ngoài plan | — | D9.4: `Cuisine` không có cột `status`, nên admin món ăn không có nháp/ẩn; xoá là mất khỏi public ngay. `TourCuisines` đổi sang prop `cuisines` lấy từ DB thay vì `tour.cuisines` |
 | Ngoài plan | — | D9.4: `/am-thuc/[slug]` vẫn dùng `tourDetails` fixture cho `RelatedTourCard` và khớp bữa ăn; chỉ dữ liệu món ăn chuyển sang DB. Phần lịch trình tour giữ lại đến D9.6 |
+| Ngoài plan | — | D9.5: FAQ không có slug nên admin sửa/xoá theo `id`; `ContactFaq` nhận `PublicFaqRecord` thay vì `FaqRecord` từ fixture. Chủ đề FAQ được whitelist 6 giá trị (`general/booking/transport/food/safety/weather`) |
+| Ngoài plan | — | **20/11/2026:** production FAQ trước D9.5 vẫn là 8 row `placement = null`. Đã backup `faqs` (`%TEMP%\xmsn-faq-backup-*`), gán `contact` cho 5 câu liên hệ và thêm 4 FAQ `home` (sort 9–12); 3 câu chủ đề còn `null` |
 | Ngoài plan | — | `Post` thiếu `topic`/`relatedTourCodes`/`checklist`/`isFeatured`; `Faq` thiếu `placement` → D9.1 thêm migration |
 | Ngoài plan | — | D8 render form đánh giá trong `components/lookup/order-lookup.tsx`, không phải `app/(site)/tra-cuu-don/page.tsx` (trang server không biết trạng thái đơn) |
 | Ngoài plan | — | **19/11/2026:** admin login production lỗi `P2022 admin_users.token_version does not exist` vì migration D7 chưa lên production. Đã backup `admin_users`/`orders` rồi `prisma migrate deploy`; `migrate status` up to date. Local dev chuyển sang `npm run dev:local`; `lib/prisma.ts` cảnh báo nếu dev trỏ production |
