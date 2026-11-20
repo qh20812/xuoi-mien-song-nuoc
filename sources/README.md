@@ -36,6 +36,10 @@ khu quản trị tối giản để xử lý đơn.
 **Quản trị**
 
 - Đăng nhập `/admin/login`, bảo vệ toàn bộ `/admin` bằng `proxy.ts`.
+- Tự đổi mật khẩu tại `/admin/account` (mọi vai trò). Đổi xong `tokenVersion` tăng,
+  cookie bị xoá và phiên cũ mất hiệu lực — phải đăng nhập lại bằng mật khẩu mới.
+- Nhật ký thao tác tại `/admin/audit` (chỉ chủ sở hữu): lọc theo đối tượng, hành động,
+  người thực hiện và khoảng ngày; chỉ đọc, có phân trang.
 - Dashboard đếm đơn theo trạng thái, danh sách đơn (lọc trạng thái / tìm mã, SĐT, tên).
 - Chi tiết đơn: khách, tour, hành khách, chi phí, lịch sử trạng thái.
 - Thao tác: `pending` (đã liên hệ) → `confirm` (xác nhận, bỏ hạn giữ chỗ) →
@@ -44,6 +48,8 @@ khu quản trị tối giản để xử lý đơn.
 - CRUD nội dung: điểm đến (`/admin/destinations`), bài viết (`/admin/posts`), món ăn
   (`/admin/cuisines`), FAQ (`/admin/faqs`); lưu xong gọi `updateTag` để public thấy ngay.
   Draft/tắt `isActive` biến khỏi public.
+- Thư viện ảnh `/admin/media`: tải ảnh thật lên Cloudinary (tự resize ≤1920 + WebP),
+  hoặc thêm URL `/images/…`/Cloudinary; xoá ảnh đang dùng làm ảnh bìa bị chặn.
 - Giao diện theo `DESIGN-ADMIN.md`: sidebar 248px + drawer mobile, chip trạng thái theo token
   dự án; danh sách đơn có bảng ở `≥768` và card ở mobile; chi tiết đơn chỉ hiện hành động hợp
   lệ với trạng thái, huỷ bắt buộc nhập lý do.
@@ -56,11 +62,11 @@ app/
   api/orders/…           đặt chỗ, tra cứu, huỷ (public)
   api/contact/           nhận lời nhắn liên hệ (public)
   api/reviews/           nhận đánh giá của khách (public)
-  api/admin/…            login/logout/me, danh sách & cập nhật đơn
+  api/admin/…            login/logout/me, đơn hàng, upload media
   admin/login/           trang đăng nhập
-  admin/(dashboard)/     dashboard, đơn hàng, tour/chuyến, nội dung, media, đánh giá, cấu hình, tài khoản
+  admin/(dashboard)/     dashboard, đơn hàng, tour/chuyến, nội dung, media, đánh giá, cấu hình, người dùng, nhật ký, tài khoản
 components/
-  admin/                 shell, sidebar, drawer, page header, chip trạng thái, form CRUD nội dung
+  admin/                 shell, sidebar (3 nhóm nav cuộn), drawer, page header, chip trạng thái, form CRUD nội dung, form đổi mật khẩu, form upload media
   reviews/               form khách gửi đánh giá (chỉ hiện với đơn completed)
 lib/
   api/client.ts          fetch wrapper dùng chung (inject được baseUrl/fetchImpl)
@@ -82,6 +88,7 @@ server/
   catalog/               tour & chuyến khởi hành công khai (đọc từ MySQL)
   contact/               ghi contact_messages
   content/               query + admin CRUD + cache cho điểm đến/bài viết/món ăn/FAQ
+  media/                 Cloudinary upload/resize + CRUD media + chặn xoá ảnh đang dùng
   reviews/               tạo đánh giá khách + service kiểm duyệt cho admin
   settings/              đọc bảng settings + ghép cấu hình site
   auth/authenticate.ts   xác thực admin dùng chung
@@ -134,7 +141,7 @@ npm run lint
 | `SEED_ALLOW_PROD` | tuỳ chọn | Cho phép seed khi `NODE_ENV=production` |
 | `SEED_FORCE_SETTINGS` | tuỳ chọn | Ghi đè nhóm settings khi seed lại |
 | `NEXT_BUILD_CPUS` | tuỳ chọn (build) | Số worker khi `next build`; Dockerfile mặc định `2` |
-| `CLOUDINARY_URL` | chưa dùng | Dành cho upload ảnh sau này |
+| `CLOUDINARY_URL` | ✅ cho upload ảnh | `cloudinary://key:secret@cloud_name`; thiếu thì `/admin/media` báo 503 |
 
 Sinh khoá:
 
@@ -357,7 +364,8 @@ Lưu ý production:
 
 ### Việc phải làm trước go-live
 
-1. Đổi mật khẩu admin mặc định (`admin@xuoiemiensongnuoc.vn` / `Xmsn@2026`).
+1. Đổi mật khẩu admin mặc định (`admin@xuoiemiensongnuoc.vn` / `Xmsn@2026`) — đăng nhập
+   rồi vào `/admin/account`.
 2. Thay hotline/Zalo placeholder trong bảng `settings`
    (`0900 000 000` / `0900000000`).
 3. Đặt `AUTH_SECRET`, `IP_HASH_SALT` thật; bật HTTPS.

@@ -21,9 +21,9 @@ async function getCopyrightYear() {
 export default async function AdminLoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; ok?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, ok } = await searchParams;
   const year = await getCopyrightYear();
 
   return (
@@ -66,6 +66,15 @@ export default async function AdminLoginPage({
                 Đăng nhập
               </h1>
               <p className="mt-2 text-[13px] text-sage">Dùng email nội bộ đã được cấp.</p>
+
+              {ok === "password" ? (
+                <p
+                  role="status"
+                  className="mt-5 rounded-[8px] border border-success/30 bg-success/10 px-3 py-2.5 text-[13px] font-medium text-success"
+                >
+                  Đã đổi mật khẩu. Vui lòng đăng nhập lại bằng mật khẩu mới.
+                </p>
+              ) : null}
 
               <div className="mt-6">
                 <LoginForm next={sanitizeNextPath(next)} />

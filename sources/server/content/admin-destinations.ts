@@ -11,6 +11,7 @@ import {
   normalizeDestinationCategory,
 } from "@/lib/destinations/categories";
 import prisma from "@/lib/prisma";
+import { isManagedImageUrl } from "@/lib/media/image-url";
 import { AppError } from "@/server/errors";
 
 export const ADMIN_DESTINATION_STATUSES = ["draft", "published"] as const;
@@ -74,7 +75,6 @@ export type TourOption = {
 };
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const LOCAL_IMAGE = /^\/images\/[\w./-]+\.(webp|jpe?g|png|avif)$/i;
 const CATEGORY_VALUES = Object.keys(CATEGORY_LABELS) as DestinationCategory[];
 
 const ADMIN_DESTINATION_SELECT = {
@@ -173,10 +173,10 @@ function normalize(input: DestinationInput) {
   const coverImageUrl = input.coverImageUrl?.trim()
     ? input.coverImageUrl.trim()
     : null;
-  if (coverImageUrl && !LOCAL_IMAGE.test(coverImageUrl)) {
+  if (coverImageUrl && !isManagedImageUrl(coverImageUrl)) {
     throw new AppError(
       "INVALID_DESTINATION",
-      "Ảnh bìa phải là đường dẫn nội bộ /images/…",
+      "Ảnh bìa phải là đường dẫn /images/… hoặc URL Cloudinary",
       400,
     );
   }

@@ -289,6 +289,8 @@ model Media {
   id           Int       @id @default(autoincrement())
   type         MediaType @default(image)
   url          String    @db.VarChar(1000)
+  /** Asset Cloudinary; NULL cho row cũ hoặc URL nhập tay. */
+  publicId     String?   @unique @map("public_id") @db.VarChar(255)
   thumbnailUrl String?   @map("thumbnail_url") @db.VarChar(1000)
   title        String?   @db.VarChar(255)
   alt          String?   @db.VarChar(255)
@@ -514,5 +516,9 @@ model AdminAuditLog {
   admin AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
 
   @@index([entity, entityId, createdAt])
+  @@index([createdAt])
+  @@index([adminId, createdAt])
+  @@index([action, createdAt])
+  @@index([entity, createdAt])
   @@map("admin_audit_logs")
 }

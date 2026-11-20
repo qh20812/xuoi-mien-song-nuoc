@@ -11,8 +11,10 @@ import {
   LayoutDashboard,
   MapPin,
   Newspaper,
+  ScrollText,
   Settings,
   Star,
+  UserRound,
   Users,
   Utensils,
 } from "lucide-react";
@@ -29,90 +31,118 @@ type AdminLink = {
   capability?: Capability;
 };
 
-const ADMIN_LINKS: AdminLink[] = [
+const NAV_GROUPS: { label: string; links: AdminLink[] }[] = [
   {
-    href: "/admin",
-    label: "Tổng quan",
-    icon: LayoutDashboard,
-    exact: true,
-    capability: "orders:read",
+    label: "Vận hành",
+    links: [
+      {
+        href: "/admin",
+        label: "Tổng quan",
+        icon: LayoutDashboard,
+        exact: true,
+        capability: "orders:read",
+      },
+      {
+        href: "/admin/orders",
+        label: "Đơn hàng",
+        icon: ClipboardList,
+        exact: false,
+        capability: "orders:read",
+      },
+      {
+        href: "/admin/messages",
+        label: "Hộp thư",
+        icon: Inbox,
+        exact: false,
+        capability: "messages:read",
+      },
+    ],
   },
   {
-    href: "/admin/orders",
-    label: "Đơn hàng",
-    icon: ClipboardList,
-    exact: false,
-    capability: "orders:read",
+    label: "Nội dung",
+    links: [
+      {
+        href: "/admin/tours",
+        label: "Tour & chuyến",
+        icon: CalendarDays,
+        exact: false,
+        capability: "catalog:write",
+      },
+      {
+        href: "/admin/destinations",
+        label: "Điểm đến",
+        icon: MapPin,
+        exact: false,
+        capability: "content:write",
+      },
+      {
+        href: "/admin/posts",
+        label: "Bài viết",
+        icon: Newspaper,
+        exact: false,
+        capability: "content:write",
+      },
+      {
+        href: "/admin/cuisines",
+        label: "Món ăn",
+        icon: Utensils,
+        exact: false,
+        capability: "content:write",
+      },
+      {
+        href: "/admin/faqs",
+        label: "FAQ",
+        icon: CircleHelp,
+        exact: false,
+        capability: "content:write",
+      },
+      {
+        href: "/admin/media",
+        label: "Thư viện ảnh",
+        icon: Images,
+        exact: false,
+        capability: "content:write",
+      },
+      {
+        href: "/admin/reviews",
+        label: "Đánh giá",
+        icon: Star,
+        exact: false,
+        capability: "content:write",
+      },
+    ],
   },
   {
-    href: "/admin/messages",
-    label: "Hộp thư",
-    icon: Inbox,
-    exact: false,
-    capability: "messages:read",
-  },
-  {
-    href: "/admin/tours",
-    label: "Tour & chuyến",
-    icon: CalendarDays,
-    exact: false,
-    capability: "catalog:write",
-  },
-  {
-    href: "/admin/destinations",
-    label: "Điểm đến",
-    icon: MapPin,
-    exact: false,
-    capability: "content:write",
-  },
-  {
-    href: "/admin/posts",
-    label: "Bài viết",
-    icon: Newspaper,
-    exact: false,
-    capability: "content:write",
-  },
-  {
-    href: "/admin/cuisines",
-    label: "Món ăn",
-    icon: Utensils,
-    exact: false,
-    capability: "content:write",
-  },
-  {
-    href: "/admin/faqs",
-    label: "FAQ",
-    icon: CircleHelp,
-    exact: false,
-    capability: "content:write",
-  },
-  {
-    href: "/admin/media",
-    label: "Thư viện ảnh",
-    icon: Images,
-    exact: false,
-    capability: "content:write",
-  },
-  {
-    href: "/admin/reviews",
-    label: "Đánh giá",
-    icon: Star,
-    exact: false,
-    capability: "content:write",
-  },
-  {
-    href: "/admin/users",
-    label: "Tài khoản",
-    icon: Users,
-    exact: false,
-    capability: "users:manage",
-  },
-  {
-    href: "/admin/settings",
-    label: "Cấu hình",
-    icon: Settings,
-    exact: false,
-    capability: "settings:write",
+    label: "Hệ thống",
+    links: [
+      {
+        href: "/admin/users",
+        label: "Người dùng",
+        icon: Users,
+        exact: false,
+        capability: "users:manage",
+      },
+      {
+        href: "/admin/audit",
+        label: "Nhật ký",
+        icon: ScrollText,
+        exact: false,
+        capability: "audit:read",
+      },
+      {
+        href: "/admin/settings",
+        label: "Cấu hình",
+        icon: Settings,
+        exact: false,
+        capability: "settings:write",
+      },
+      {
+        href: "/admin/account",
+        label: "Tài khoản của tôi",
+        icon: UserRound,
+        exact: true,
+      },
+    ],
   },
 ];
 
@@ -131,50 +161,63 @@ export function AdminNavLinks({
   unreadMessages = 0,
 }: AdminNavLinksProps) {
   const pathname = usePathname();
-  const links = ADMIN_LINKS.filter(
-    (link) => !link.capability || capabilities.includes(link.capability),
-  );
   const unreadLabel = formatUnreadCount(unreadMessages);
+  const groups = NAV_GROUPS.map((group) => ({
+    label: group.label,
+    links: group.links.filter(
+      (link) => !link.capability || capabilities.includes(link.capability),
+    ),
+  })).filter((group) => group.links.length > 0);
 
   return (
-    <nav aria-label="Điều hướng quản trị" className="flex flex-col gap-1 px-3">
-      {links.map(({ href, label, icon: Icon, exact }) => {
-        const active = exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
-        const badge = href === "/admin/messages" ? unreadLabel : null;
+    <nav aria-label="Điều hướng quản trị" className="flex flex-col gap-5 px-3 py-2">
+      {groups.map((group) => (
+        <div key={group.label} className="flex flex-col gap-1">
+          <p className="px-3 pb-1 text-[10px] font-semibold tracking-[0.16em] text-contrast-on-accent/60 uppercase">
+            {group.label}
+          </p>
 
-        return (
-          <Link
-            key={href}
-            href={href}
-            onClick={onNavigate}
-            aria-current={active ? "page" : undefined}
-            aria-label={badge ? `${label}, ${badge} tin mới` : undefined}
-            className={cn(
-              "relative flex min-h-11 items-center gap-3 rounded-md px-3 text-[13px] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 focus-visible:ring-offset-ink focus-visible:outline-none",
-              active
-                ? "bg-contrast-on-accent/10 text-contrast-on-accent"
-                : "text-contrast-on-accent/60 hover:bg-contrast-on-accent/5 hover:text-contrast-on-accent",
-            )}
-          >
-            {active ? (
-              <span
-                aria-hidden="true"
-                className="absolute top-1/2 left-0 h-5 w-[3px] -translate-y-1/2 rounded-r bg-clay"
-              />
-            ) : null}
-            <Icon aria-hidden="true" className="size-[18px] shrink-0" />
-            <span>{label}</span>
-            {badge ? (
-              <span
-                aria-hidden="true"
-                className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-clay px-1.5 py-0.5 text-[10px] leading-none font-semibold text-contrast-on-accent tabular-nums"
+          {group.links.map(({ href, label, icon: Icon, exact }) => {
+            const active = exact
+              ? pathname === href
+              : pathname === href || pathname.startsWith(`${href}/`);
+            const badge = href === "/admin/messages" ? unreadLabel : null;
+
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={onNavigate}
+                aria-current={active ? "page" : undefined}
+                aria-label={badge ? `${label}, ${badge} tin mới` : undefined}
+                className={cn(
+                  "relative flex min-h-11 items-center gap-3 rounded-md px-3 text-[13px] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 focus-visible:ring-offset-ink focus-visible:outline-none",
+                  active
+                    ? "bg-contrast-on-accent/10 text-contrast-on-accent"
+                    : "text-contrast-on-accent/60 hover:bg-contrast-on-accent/5 hover:text-contrast-on-accent",
+                )}
               >
-                {badge}
-              </span>
-            ) : null}
-          </Link>
-        );
-      })}
+                {active ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute top-1/2 left-0 h-5 w-[3px] -translate-y-1/2 rounded-r bg-clay"
+                  />
+                ) : null}
+                <Icon aria-hidden="true" className="size-[18px] shrink-0" />
+                <span>{label}</span>
+                {badge ? (
+                  <span
+                    aria-hidden="true"
+                    className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-clay px-1.5 py-0.5 text-[10px] leading-none font-semibold text-contrast-on-accent tabular-nums"
+                  >
+                    {badge}
+                  </span>
+                ) : null}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
     </nav>
   );
 }

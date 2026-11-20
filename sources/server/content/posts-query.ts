@@ -5,7 +5,7 @@ import type {
 } from "@/lib/contracts/post";
 import { toPostRecord } from "@/lib/content/mappers";
 import { toPostListingData } from "@/lib/posts/listing";
-import { toLocalImage } from "@/lib/images";
+import { toImageAsset } from "@/lib/images";
 import prisma from "@/lib/prisma";
 
 const POST_SELECT = {
@@ -107,7 +107,7 @@ export async function queryToursForPost(
         durationDays: row.durationDays,
         durationNights: row.durationNights,
         priceAdult: row.basePriceAdult,
-        coverImage: toLocalImage(row.coverImageUrl, row.name) ?? {
+        coverImage: toImageAsset(row.coverImageUrl, row.name) ?? {
           src: TOUR_FALLBACK_IMAGE_SRC,
           alt: row.name,
         },

@@ -6,7 +6,7 @@
  */
 import type { BookingSuccessData } from "@/lib/contracts/booking";
 import type { PublicOrder } from "@/lib/contracts/order";
-import { toLocalImage } from "@/lib/images";
+import { toImageAsset } from "@/lib/images";
 
 export function orderDtoToBookingSuccess(
   order: PublicOrder,
@@ -21,7 +21,7 @@ export function orderDtoToBookingSuccess(
     tourSlug: order.tour.slug,
     durationDays: order.tour.durationDays,
     durationNights: order.tour.durationNights,
-    coverImage: toLocalImage(order.tour.coverImageUrl, order.tour.name) ?? undefined,
+    coverImage: toImageAsset(order.tour.coverImageUrl, order.tour.name) ?? undefined,
     departureDate: order.departure.date,
     contactName: order.contactName,
     phoneMasked: order.phoneMasked,

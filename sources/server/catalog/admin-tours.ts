@@ -10,6 +10,7 @@
  */
 import type { TourStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import { isManagedImageUrl } from "@/lib/media/image-url";
 import { AppError } from "@/server/errors";
 
 export const ADMIN_TOUR_STATUSES = ["draft", "published", "archived"] as const;
@@ -72,8 +73,6 @@ export type TourContentInput = {
   sortOrder: number;
 };
 
-const LOCAL_IMAGE = /^\/images\/[\w./-]+\.(webp|jpe?g|png|avif)$/i;
-
 function text(value: string | null, max: number): string | null {
   if (!value) return null;
   const trimmed = value.trim();
@@ -94,10 +93,10 @@ function normalize(input: TourContentInput) {
   }
 
   const coverImageUrl = input.coverImageUrl?.trim() ? input.coverImageUrl.trim() : null;
-  if (coverImageUrl && !LOCAL_IMAGE.test(coverImageUrl)) {
+  if (coverImageUrl && !isManagedImageUrl(coverImageUrl)) {
     throw new AppError(
       "INVALID_TOUR",
-      "Ảnh bìa phải là đường dẫn nội bộ /images/…",
+      "Ảnh bìa phải là đường dẫn /images/… hoặc URL Cloudinary",
       400,
     );
   }

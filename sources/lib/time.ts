@@ -40,6 +40,20 @@ export function parseDateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Chuỗi có đúng định dạng YYYY-MM-DD và là ngày có thật (loại 2026-02-31). */
+export function isDateOnly(value: unknown): value is string {
+  if (typeof value !== "string" || !DATE_ONLY_PATTERN.test(value)) return false;
+  const parsed = parseDateOnly(value);
+  return !Number.isNaN(parsed.getTime()) && dateOnly(parsed) === value;
+}
+
+/** 00:00 ngày Việt Nam (UTC+7) -> thời điểm UTC tương ứng. */
+export function vnDayStart(value: string): Date {
+  return new Date(`${value}T00:00:00+07:00`);
+}
+
 /** Cộng/trừ ngày trên chuỗi YYYY-MM-DD. */
 export function addDaysToDateString(value: string, days: number): string {
   const date = parseDateOnly(value);

@@ -1,20 +1,17 @@
 import type { ImageAsset } from "@/lib/contracts/home";
+import { isManagedImageUrl } from "@/lib/media/image-url";
 
 /**
- * Ảnh nội bộ trong `public/images`.
+ * Ảnh được phép đưa vào `next/image`: nội bộ trong `public/images` hoặc Cloudinary.
  *
- * `next.config.ts` không còn khai báo host ngoài (`images.remotePatterns`) nên
- * `next/image` sẽ **ném lỗi runtime** nếu nhận một URL http(s). Mọi chỗ đọc ảnh
- * từ DB (có thể là dữ liệu cũ hoặc do người dùng nhập) phải đi qua hàm này để
- * rơi về `null` thay vì làm sập trang.
+ * Dữ liệu DB có thể là row cũ hoặc do người dùng nhập, nên mọi chỗ đọc ảnh phải đi
+ * qua hàm này để rơi về `null` thay vì làm sập trang.
  */
-const LOCAL_IMAGE_PATH = /^\/images\/[\w./-]+\.(webp|jpe?g|png|avif)$/i;
-
-export function toLocalImage(
+export function toImageAsset(
   src: string | null | undefined,
   alt: string,
 ): ImageAsset | null {
-  if (!src || !LOCAL_IMAGE_PATH.test(src)) return null;
+  if (!src || !isManagedImageUrl(src)) return null;
 
   return { src, alt };
 }

@@ -94,9 +94,13 @@ Quy tắc:
 ```
 
 - Sidebar: `bg-ink`, `lg:sticky lg:top-0 lg:h-dvh lg:w-[248px]`, chứa logo 40px, wordmark,
-  nhãn `QUẢN TRỊ`, 2 mục nav, footer tên admin + đăng xuất.
-- Nav item: `min-h-11` (44px), `rounded-md`, icon 18px. Mục đang chọn có nền
-  `contrast-on-accent/10`, thanh `bg-clay` 3px bên trái và `aria-current="page"`.
+  nhãn `QUẢN TRỊ`, nav **3 nhóm** (Vận hành / Nội dung / Hệ thống), footer tên admin + đăng xuất.
+- Vùng nav `min-h-0 flex-1 overflow-y-auto` (sidebar và drawer), footer cố định ngoài vùng cuộn —
+  nhờ vậy thêm mục không đẩy nút "Đăng xuất" ra khỏi viewport. Đây là vùng cuộn duy nhất
+  ngoài document.
+- Nav item: `min-h-11` (44px), `rounded-md`, icon 18px. Nhóm có nhãn 10px uppercase
+  `text-contrast-on-accent/60`; mục đang chọn có nền `contrast-on-accent/10`, thanh `bg-clay`
+  3px bên trái và `aria-current="page"`.
 - Content: `max-w-[1200px]`, padding `px-4 py-6 sm:px-6 lg:px-8 lg:py-8`.
 - Mobile: top bar `h-14` + drawer `w-[300px] max-w-[85vw]`, đóng bằng Escape, bằng nút X,
   và tự đóng khi chuyển trang; khoá `body` overflow khi mở.
@@ -266,7 +270,9 @@ Kết quả phải rỗng.
 
 ## 12. Không làm
 
-- Không thêm mục nav ngoài "Tổng quan" và "Đơn hàng".
+- Không thêm mục nav cho tính năng **chưa có route/service thật**; menu hiện tại phản ánh
+  đúng các domain đã triển khai (đơn, hộp thư, tour/chuyến, 4 domain nội dung, media, đánh giá,
+  cấu hình, người dùng, tài khoản).
 - Không hiển thị dữ liệu không có trong schema: tàu, khoang, số ghế, giờ trễ, mã khách hàng,
   trạng thái thanh toán, Zalo ZNS.
 - Không hardcode mã đơn, tên khách, số tiền hay "đồng bộ máy chủ" trong JSX.
@@ -291,7 +297,7 @@ npx tsc --noEmit && npm run lint && npm run build
 
 ---
 
-## 14. Đã triển khai (A0–A8)
+## 14. Đã triển khai (A0–A8, D10.1–D10.2)
 
 ### Route ↔ file
 
@@ -301,6 +307,8 @@ npx tsc --noEmit && npm run lint && npm run build
 | Tổng quan | `/admin` | `app/admin/(dashboard)/page.tsx` |
 | Danh sách đơn | `/admin/orders` | `app/admin/(dashboard)/orders/page.tsx` |
 | Chi tiết đơn | `/admin/orders/[id]` | `app/admin/(dashboard)/orders/[id]/page.tsx` |
+| Tài khoản của tôi | `/admin/account` | `app/admin/(dashboard)/account/page.tsx` · `actions.ts` |
+| Nhật ký thao tác | `/admin/audit` | `app/admin/(dashboard)/audit/page.tsx` · `server/audit/admin-audit.ts` |
 | 404 trong shell | — | `app/admin/(dashboard)/not-found.tsx` |
 | 404 fallback | — | `app/admin/not-found.tsx` |
 
@@ -308,12 +316,14 @@ npx tsc --noEmit && npm run lint && npm run build
 
 | File | Vai trò |
 |---|---|
-| `components/admin/admin-sidebar.tsx` | Cột 248px desktop, logo 40px, footer admin |
-| `components/admin/admin-mobile-nav.tsx` | Top bar 56px + drawer 300px (Escape, khoá scroll) |
-| `components/admin/admin-nav-links.tsx` | 2 nav, `usePathname`, `aria-current`, thanh clay |
+| `components/admin/admin-sidebar.tsx` | Cột 248px desktop, logo 40px, nav cuộn, footer admin |
+| `components/admin/admin-mobile-nav.tsx` | Top bar 56px + drawer 300px (Escape, khoá scroll, nav cuộn) |
+| `components/admin/admin-nav-links.tsx` | 3 nhóm nav, `usePathname`, `aria-current`, thanh clay, badge hộp thư |
 | `components/admin/admin-page-header.tsx` | Breadcrumb + H1 + mô tả + actions; `titleClassName` cho mã đơn |
 | `components/admin/status-badge.tsx` | 6 chip + `HoldExpiredLabel` |
 | `components/admin/order-actions.tsx` | Form hành động theo trạng thái, `useFormStatus` |
+| `components/admin/change-password-form.tsx` | Form tự đổi mật khẩu, input controlled, toggle hiện mật khẩu |
+| `components/admin/media-upload-form.tsx` | Upload ảnh Cloudinary qua route, pending/error, `router.refresh()` |
 | `lib/booking/status-labels.ts` | Nguồn nhãn duy nhất, dùng cả ở `server/booking/dto.ts` |
 
 ### Hành vi đã chốt
@@ -322,6 +332,15 @@ npx tsc --noEmit && npm run lint && npm run build
 - Danh sách đơn: lọc `status`/`q` bằng GET, phân trang giữ filter; card ở `<768`.
 - Tổng quan: 4 KPI là link thật, số 0 vẫn hiển thị (màu `sage`).
 - Tiền/ngày theo §7; nguồn đơn map `web|zalo|phone|facebook`.
+- Tự đổi mật khẩu: xác minh bcrypt, `tokenVersion++`, xoá cookie, về `/admin/login?ok=password`.
+  Sai mật khẩu hiện tại / mật khẩu yếu / trùng mật khẩu cũ đều hiện lỗi inline và **giữ nguyên**
+  nội dung đã nhập (input controlled).
+- Nhật ký `/admin/audit`: chỉ `owner` có `audit:read`; read-only, không có form sửa/xoá.
+  Lọc entity exact + action prefix + admin + khoảng ngày VN (`to` inclusive); `meta` xem trong
+  `<details>`; bảng ở `xl+`, card ở dưới; phân trang 50 giữ filter.
+- Media `/admin/media`: upload Cloudinary (JPEG/PNG/WebP/AVIF ≤ 8 MB, resize ≤1920, WebP q78).
+  Ảnh có `publicId` không sửa được URL/loại; xoá ảnh đang dùng làm ảnh bìa trả 409
+  `MEDIA_IN_USE`. URL ảnh nội dung chỉ nhận `/images/…` hoặc `res.cloudinary.com/.../image/upload/...`.
 
 ### Sai lệch đã biết
 

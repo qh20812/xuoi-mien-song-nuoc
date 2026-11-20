@@ -8,8 +8,10 @@ import {
   daysBetweenDateStrings,
   daysUntilDeparture,
   isAtLeastDaysAhead,
+  isDateOnly,
   parseDateOnly,
   todayVN,
+  vnDayStart,
 } from "@/lib/time";
 
 test("todayVN dùng múi giờ Việt Nam, không dùng UTC của server", () => {
@@ -46,4 +48,18 @@ test("dateOnly và addHours", () => {
   assert.equal(dateOnly(parseDateOnly("2026-10-24")), "2026-10-24");
   const start = new Date("2026-10-21T00:00:00.000Z");
   assert.equal(addHours(start, 24).toISOString(), "2026-10-22T00:00:00.000Z");
+});
+
+test("isDateOnly chỉ nhận ngày có thật đúng định dạng", () => {
+  assert.equal(isDateOnly("2026-11-21"), true);
+  assert.equal(isDateOnly("2026-02-31"), false);
+  assert.equal(isDateOnly("2026-2-1"), false);
+  assert.equal(isDateOnly("21/11/2026"), false);
+  assert.equal(isDateOnly(""), false);
+  assert.equal(isDateOnly(undefined), false);
+});
+
+test("vnDayStart trả 00:00 giờ Việt Nam dưới dạng UTC", () => {
+  assert.equal(vnDayStart("2026-11-21").toISOString(), "2026-11-20T17:00:00.000Z");
+  assert.equal(vnDayStart("2026-01-01").toISOString(), "2025-12-31T17:00:00.000Z");
 });

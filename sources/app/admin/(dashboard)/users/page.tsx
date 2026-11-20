@@ -17,7 +17,7 @@ import {
 export const instant = false;
 
 export const metadata = {
-  title: "Tài khoản quản trị | Quản trị Xuôi Miền Sông Nước",
+  title: "Người dùng quản trị | Quản trị Xuôi Miền Sông Nước",
 };
 
 const OK_MESSAGE: Record<string, string> = {
@@ -58,8 +58,8 @@ export default async function AdminUsersPage({
   return (
     <div className="flex flex-col gap-6">
       <AdminPageHeader
-        breadcrumb={[{ label: "Quản trị", href: "/admin" }, { label: "Tài khoản" }]}
-        title="Tài khoản quản trị"
+        breadcrumb={[{ label: "Quản trị", href: "/admin" }, { label: "Người dùng" }]}
+        title="Người dùng quản trị"
         description="Thêm người dùng, đổi vai trò, đặt lại mật khẩu. Không thể tự vô hiệu hoá mình hoặc bỏ chủ sở hữu cuối cùng."
         actions={<span className="text-[13px] text-sage">{users.length} tài khoản</span>}
       />

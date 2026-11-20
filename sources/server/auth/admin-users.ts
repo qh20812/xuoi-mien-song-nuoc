@@ -53,6 +53,11 @@ export type UpdateAdminUserInput = {
   isActive: boolean;
 };
 
+export type ChangeOwnPasswordInput = {
+  currentPassword: string;
+  newPassword: string;
+};
+
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -286,6 +291,64 @@ export async function resetAdminPassword(
         entity: "admin_user",
         entityId: targetId,
         meta: { email: target.email },
+      },
+    });
+  });
+}
+
+/**
+ * Tự đổi mật khẩu (mọi vai trò).
+ *
+ * Xác minh mật khẩu hiện tại bằng bcrypt, đổi hash và tăng `tokenVersion` trong
+ * cùng transaction ⇒ mọi JWT cũ mất hiệu lực ngay. Không ghi mật khẩu vào audit.
+ */
+export async function changeOwnPassword(
+  actorId: number,
+  input: ChangeOwnPasswordInput,
+): Promise<void> {
+  const actor = await prisma.adminUser.findUnique({
+    where: { id: actorId },
+    select: { id: true, email: true, passwordHash: true, isActive: true },
+  });
+
+  if (!actor?.isActive) {
+    throw new AppError("ADMIN_NOT_FOUND", "Không tìm thấy tài khoản", 404);
+  }
+
+  const matches = await bcrypt.compare(input.currentPassword, actor.passwordHash);
+  if (!matches) {
+    throw new AppError(
+      "INVALID_CURRENT_PASSWORD",
+      "Mật khẩu hiện tại không đúng.",
+      400,
+    );
+  }
+
+  assertPassword(input.newPassword);
+
+  if (await bcrypt.compare(input.newPassword, actor.passwordHash)) {
+    throw new AppError(
+      "PASSWORD_UNCHANGED",
+      "Mật khẩu mới phải khác mật khẩu hiện tại.",
+      400,
+    );
+  }
+
+  const passwordHash = await bcrypt.hash(input.newPassword, BCRYPT_ROUNDS);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.adminUser.update({
+      where: { id: actorId },
+      data: { passwordHash, tokenVersion: { increment: 1 } },
+    });
+
+    await tx.adminAuditLog.create({
+      data: {
+        adminId: actorId,
+        action: "admin.password_self",
+        entity: "admin_user",
+        entityId: actorId,
+        meta: { email: actor.email },
       },
     });
   });

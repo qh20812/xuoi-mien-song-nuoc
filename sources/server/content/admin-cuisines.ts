@@ -6,6 +6,7 @@
  */
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import { isManagedImageUrl } from "@/lib/media/image-url";
 import { AppError } from "@/server/errors";
 
 export type AdminCuisineRow = {
@@ -39,7 +40,6 @@ export type CuisineTourOption = {
 };
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const LOCAL_IMAGE = /^\/images\/[\w./-]+\.(webp|jpe?g|png|avif)$/i;
 
 const ADMIN_CUISINE_SELECT = {
   id: true,
@@ -93,10 +93,10 @@ function normalize(input: CuisineInput) {
   }
 
   const imageUrl = input.imageUrl?.trim() ? input.imageUrl.trim() : null;
-  if (imageUrl && !LOCAL_IMAGE.test(imageUrl)) {
+  if (imageUrl && !isManagedImageUrl(imageUrl)) {
     throw new AppError(
       "INVALID_CUISINE",
-      "Ảnh phải là đường dẫn nội bộ /images/…",
+      "Ảnh phải là đường dẫn /images/… hoặc URL Cloudinary",
       400,
     );
   }

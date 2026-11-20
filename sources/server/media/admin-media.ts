@@ -1,12 +1,15 @@
 /**
- * Thư viện ảnh/media cho admin (P4).
+ * Thư viện ảnh/media cho admin (P4 + D10.4).
  *
- * Lưu ý: `next/image` đã bỏ `remotePatterns`, nên ảnh `type = image` chỉ nhận
- * đường dẫn nội bộ `/images/...`. Media `type = youtube` vẫn nhận URL https.
+ * Ảnh `type = image` chỉ nhận `/images/...` hoặc Cloudinary (xem
+ * `lib/media/image-url.ts`). Media `type = youtube` vẫn nhận URL https.
+ * Row có `publicId` là asset do hệ thống tải lên Cloudinary.
  */
 import type { MediaType, Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
-import { AppError } from "@/server/errors";
+import { isManagedImageUrl } from "@/lib/media/image-url";
+import { AppError, isAppError } from "@/server/errors";
+import { cloudinaryStorage, type MediaStorage } from "@/server/media/cloudinary";
 
 export const MEDIA_TYPES = ["image", "youtube"] as const;
 
@@ -21,13 +24,16 @@ export const MEDIA_TYPE_LABEL: Record<MediaTypeValue, string> = {
   youtube: "Video YouTube",
 };
 
-const LOCAL_IMAGE = /^\/images\/[\w./-]+\.(webp|jpe?g|png|avif)$/i;
 const HTTP_URL = /^https?:\/\/\S+$/i;
 
 export type AdminMediaRow = {
   id: number;
   type: MediaTypeValue;
   url: string;
+  publicId: string | null;
+  thumbnailUrl: string | null;
+  width: number | null;
+  height: number | null;
   title: string | null;
   alt: string | null;
   tags: string[];
@@ -59,6 +65,10 @@ function toRow(row: {
   id: number;
   type: MediaType;
   url: string;
+  publicId: string | null;
+  thumbnailUrl: string | null;
+  width: number | null;
+  height: number | null;
   title: string | null;
   alt: string | null;
   tags: Prisma.JsonValue;
@@ -70,6 +80,10 @@ function toRow(row: {
     id: row.id,
     type: row.type,
     url: row.url,
+    publicId: row.publicId,
+    thumbnailUrl: row.thumbnailUrl,
+    width: row.width,
+    height: row.height,
     title: row.title,
     alt: row.alt,
     tags: normalizeTags(row.tags),
@@ -83,10 +97,10 @@ function validateUrl(type: MediaTypeValue, url: string): string {
   const trimmed = url.trim();
 
   if (type === "image") {
-    if (!LOCAL_IMAGE.test(trimmed)) {
+    if (!isManagedImageUrl(trimmed)) {
       throw new AppError(
         "MEDIA_INVALID_URL",
-        "Ảnh phải là đường dẫn nội bộ dạng /images/ten-file.webp",
+        "Ảnh phải là đường dẫn /images/… hoặc URL Cloudinary",
         400,
       );
     }
@@ -150,9 +164,20 @@ export async function updateMedia(
 ): Promise<AdminMediaRow> {
   const url = validateUrl(input.type, input.url);
 
-  const existing = await prisma.media.findUnique({ where: { id }, select: { id: true } });
+  const existing = await prisma.media.findUnique({
+    where: { id },
+    select: { id: true, url: true, type: true, publicId: true },
+  });
   if (!existing) {
     throw new AppError("MEDIA_NOT_FOUND", "Không tìm thấy media", 404);
+  }
+
+  if (existing.publicId && (existing.url !== url || existing.type !== input.type)) {
+    throw new AppError(
+      "MEDIA_MANAGED_URL",
+      "Ảnh tải lên Cloudinary không sửa được URL/loại — hãy xoá và tải lại",
+      409,
+    );
   }
 
   const updated = await prisma.$transaction(async (tx) => {
@@ -185,13 +210,47 @@ export async function updateMedia(
   return toRow(updated);
 }
 
-export async function deleteMedia(id: number, adminId: number): Promise<void> {
+export async function deleteMedia(
+  id: number,
+  adminId: number,
+  deps: { storage?: MediaStorage } = {},
+): Promise<void> {
   const existing = await prisma.media.findUnique({
     where: { id },
-    select: { id: true, url: true },
+    select: { id: true, url: true, publicId: true },
   });
   if (!existing) {
     throw new AppError("MEDIA_NOT_FOUND", "Không tìm thấy media", 404);
+  }
+
+  const [tours, destinations, posts, cuisines] = await Promise.all([
+    prisma.tour.count({ where: { coverImageUrl: existing.url } }),
+    prisma.destination.count({ where: { coverImageUrl: existing.url } }),
+    prisma.post.count({ where: { coverImageUrl: existing.url } }),
+    prisma.cuisine.count({ where: { imageUrl: existing.url } }),
+  ]);
+
+  if (tours + destinations + posts + cuisines > 0) {
+    throw new AppError(
+      "MEDIA_IN_USE",
+      "Ảnh đang được dùng làm ảnh bìa nội dung nên không xoá được",
+      409,
+      { tours, destinations, posts, cuisines },
+    );
+  }
+
+  if (existing.publicId) {
+    const storage = deps.storage ?? cloudinaryStorage;
+    try {
+      await storage.destroy(existing.publicId);
+    } catch (error) {
+      if (isAppError(error)) throw error;
+      throw new AppError(
+        "MEDIA_DELETE_FAILED",
+        "Không xoá được ảnh trên Cloudinary, vui lòng thử lại",
+        502,
+      );
+    }
   }
 
   await prisma.$transaction(async (tx) => {
@@ -202,7 +261,7 @@ export async function deleteMedia(id: number, adminId: number): Promise<void> {
         action: "media.delete",
         entity: "media",
         entityId: id,
-        meta: { url: existing.url },
+        meta: { url: existing.url, publicId: existing.publicId },
       },
     });
   });

@@ -118,11 +118,13 @@ export function AdminMobileNav({
               </button>
             </div>
 
-            <AdminNavLinks
-              capabilities={capabilities}
-              unreadMessages={unreadMessages}
-              onNavigate={() => setOpen(false)}
-            />
+            <div className="mt-2 min-h-0 flex-1 overflow-y-auto">
+              <AdminNavLinks
+                capabilities={capabilities}
+                unreadMessages={unreadMessages}
+                onNavigate={() => setOpen(false)}
+              />
+            </div>
 
             <div className="mt-auto border-t border-contrast-on-accent/10 px-5 py-4">
               <p className="text-[10px] font-semibold tracking-[0.16em] text-contrast-on-accent/60 uppercase">

@@ -11,6 +11,7 @@ import {
   toStringArray,
 } from "@/lib/content/mappers";
 import prisma from "@/lib/prisma";
+import { isManagedImageUrl } from "@/lib/media/image-url";
 import { AppError } from "@/server/errors";
 
 export const ADMIN_POST_STATUSES = ["draft", "published"] as const satisfies
@@ -72,7 +73,6 @@ export type PostTourCode = {
 };
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const LOCAL_IMAGE = /^\/images\/[\w./-]+\.(webp|jpe?g|png|avif)$/i;
 
 const ADMIN_POST_SELECT = {
   id: true,
@@ -183,10 +183,10 @@ function normalize(input: PostInput) {
   const coverImageUrl = input.coverImageUrl?.trim()
     ? input.coverImageUrl.trim()
     : null;
-  if (coverImageUrl && !LOCAL_IMAGE.test(coverImageUrl)) {
+  if (coverImageUrl && !isManagedImageUrl(coverImageUrl)) {
     throw new AppError(
       "INVALID_POST",
-      "Ảnh bìa phải là đường dẫn nội bộ /images/…",
+      "Ảnh bìa phải là đường dẫn /images/… hoặc URL Cloudinary",
       400,
     );
   }

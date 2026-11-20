@@ -1,7 +1,9 @@
 import Image from "next/image";
 import { AccessDenied } from "@/components/admin/access-denied";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { MediaUploadForm } from "@/components/admin/media-upload-form";
 import { requireCapabilityPage } from "@/lib/auth/session";
+import { toImageAsset } from "@/lib/images";
 import {
   MEDIA_TYPES,
   MEDIA_TYPE_LABEL,
@@ -44,7 +46,7 @@ export default async function AdminMediaPage({
       <AdminPageHeader
         breadcrumb={[{ label: "Quản trị", href: "/admin" }, { label: "Thư viện ảnh" }]}
         title="Thư viện ảnh"
-        description="Danh mục ảnh/video dùng làm gợi ý khi chọn ảnh bìa tour. Ảnh phải nằm trong /public/images vì next/image không còn nhận host ngoài."
+        description="Tải ảnh lên Cloudinary hoặc thêm URL /images/… có sẵn. Ảnh dùng làm gợi ý khi chọn ảnh bìa tour, điểm đến, bài viết và món ăn."
         actions={<span className="text-[13px] text-sage">{media.length} mục</span>}
       />
 
@@ -67,7 +69,21 @@ export default async function AdminMediaPage({
       ) : null}
 
       <section className="rounded-xl border border-line bg-surface p-4 md:p-5">
-        <h2 className="text-[15px] font-semibold text-ink">Thêm media</h2>
+        <h2 className="text-[15px] font-semibold text-ink">Tải ảnh lên</h2>
+        <p className="mt-1 max-w-[70ch] text-[13px] leading-relaxed text-sage">
+          Ảnh được resize và lưu trên Cloudinary; row tương ứng xuất hiện ngay trong thư
+          viện và datalist chọn ảnh bìa.
+        </p>
+
+        <MediaUploadForm />
+      </section>
+
+      <section className="rounded-xl border border-line bg-surface p-4 md:p-5">
+        <h2 className="text-[15px] font-semibold text-ink">Thêm media bằng URL</h2>
+        <p className="mt-1 max-w-[70ch] text-[13px] leading-relaxed text-sage">
+          Dùng cho ảnh đã có trong /public/images hoặc URL Cloudinary, và cho video
+          YouTube.
+        </p>
 
         <form action={createMediaAction} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="flex flex-col gap-1.5">
@@ -157,48 +173,52 @@ export default async function AdminMediaPage({
         </div>
       ) : (
         <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {media.map((item) => (
-            <li key={item.id} className="rounded-xl border border-line bg-surface p-3">
-              <div className="flex gap-3">
-                <div className="relative size-24 shrink-0 overflow-hidden rounded-[10px] border border-line bg-surface-warm">
-                  {item.type === "image" ? (
-                    <Image
-                      src={item.url}
-                      alt={item.alt ?? ""}
-                      fill
-                      sizes="96px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <span className="flex h-full items-center justify-center text-[11px] text-sage">
-                      Video
-                    </span>
-                  )}
-                </div>
+          {media.map((item) => {
+            const image = toImageAsset(item.url, item.alt ?? "");
 
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-semibold text-ink">
-                    {item.title ?? "(chưa đặt tiêu đề)"}
-                  </p>
-                  <p className="truncate text-[12px] text-sage">{item.url}</p>
-                  <p className="mt-1 text-[12px] text-sage">
-                    {MEDIA_TYPE_LABEL[item.type]} · thứ tự {item.sortOrder} ·{" "}
-                    {item.isActive ? "đang dùng" : "đã tắt"}
-                  </p>
-                  {item.tags.length > 0 ? (
-                    <p className="mt-1 flex flex-wrap gap-1">
-                      {item.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded bg-surface-warm px-1.5 py-0.5 text-[11px] text-sage"
-                        >
-                          {tag}
-                        </span>
-                      ))}
+            return (
+              <li key={item.id} className="rounded-xl border border-line bg-surface p-3">
+                <div className="flex gap-3">
+                  <div className="relative size-24 shrink-0 overflow-hidden rounded-[10px] border border-line bg-surface-warm">
+                    {item.type === "image" && image ? (
+                      <Image
+                        src={image.src}
+                        alt={image.alt}
+                        fill
+                        sizes="96px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-full items-center justify-center text-[11px] text-sage">
+                        {item.type === "image" ? "Ảnh lỗi" : "Video"}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-semibold text-ink">
+                      {item.title ?? "(chưa đặt tiêu đề)"}
                     </p>
-                  ) : null}
+                    <p className="truncate text-[12px] text-sage">{item.url}</p>
+                    <p className="mt-1 text-[12px] text-sage">
+                      {MEDIA_TYPE_LABEL[item.type]} · thứ tự {item.sortOrder} ·{" "}
+                      {item.isActive ? "đang dùng" : "đã tắt"} ·{" "}
+                      {item.publicId ? "Cloudinary" : "URL nhập tay"}
+                    </p>
+                    {item.tags.length > 0 ? (
+                      <p className="mt-1 flex flex-wrap gap-1">
+                        {item.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded bg-surface-warm px-1.5 py-0.5 text-[11px] text-sage"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
 
               <div className="mt-3 flex flex-wrap items-start gap-2 border-t border-line pt-3">
                 <details className="flex-1 rounded-[10px] border border-line bg-surface-warm/60">
@@ -216,18 +236,27 @@ export default async function AdminMediaPage({
                       >
                         Loại
                       </label>
-                      <select
-                        id={`type-${item.id}`}
-                        name="type"
-                        defaultValue={item.type}
-                        className={fieldClass}
-                      >
-                        {MEDIA_TYPES.map((type) => (
-                          <option key={type} value={type}>
-                            {MEDIA_TYPE_LABEL[type]}
-                          </option>
-                        ))}
-                      </select>
+                      {item.publicId ? (
+                        <>
+                          <input type="hidden" name="type" value={item.type} />
+                          <p className="flex h-10 items-center text-[12px] text-sage">
+                            {MEDIA_TYPE_LABEL[item.type]} (Cloudinary)
+                          </p>
+                        </>
+                      ) : (
+                        <select
+                          id={`type-${item.id}`}
+                          name="type"
+                          defaultValue={item.type}
+                          className={fieldClass}
+                        >
+                          {MEDIA_TYPES.map((type) => (
+                            <option key={type} value={type}>
+                              {MEDIA_TYPE_LABEL[type]}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
 
                     <div className="col-span-1 flex flex-col gap-1">
@@ -255,14 +284,26 @@ export default async function AdminMediaPage({
                       >
                         Đường dẫn
                       </label>
-                      <input
-                        id={`url-${item.id}`}
-                        name="url"
-                        required
-                        maxLength={1000}
-                        defaultValue={item.url}
-                        className={fieldClass}
-                      />
+                      {item.publicId ? (
+                        <>
+                          <input type="hidden" name="url" value={item.url} />
+                          <p className="break-all rounded-[10px] bg-surface-warm px-3 py-2 text-[11px] text-sage">
+                            {item.url}
+                          </p>
+                          <p className="text-[11px] text-sage">
+                            URL do Cloudinary quản lý — xoá và tải lại nếu muốn thay ảnh.
+                          </p>
+                        </>
+                      ) : (
+                        <input
+                          id={`url-${item.id}`}
+                          name="url"
+                          required
+                          maxLength={1000}
+                          defaultValue={item.url}
+                          className={fieldClass}
+                        />
+                      )}
                     </div>
 
                     <div className="col-span-1 flex flex-col gap-1">
@@ -342,13 +383,14 @@ export default async function AdminMediaPage({
                 </form>
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
 
       <p className="text-[12px] text-sage">
-        Muốn thêm ảnh mới: chép file vào <code>public/images</code> rồi khai báo
-        đường dẫn ở đây.
+        Ảnh tải lên được lưu trên Cloudinary; ảnh cũ vẫn có thể nằm trong{" "}
+        <code>public/images</code>. Không xoá được ảnh đang dùng làm ảnh bìa nội dung.
       </p>
     </div>
   );

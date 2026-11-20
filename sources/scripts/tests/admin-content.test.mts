@@ -675,7 +675,7 @@ test("media: tạo, sửa, xoá và chặn URL không hợp lệ", async () => {
 
   const base = {
     type: "image" as const,
-    url: "/images/23-xuong-may-tren-kenh-phu-sa.webp",
+    url: `/images/qa-media-${randomUUID().slice(0, 8)}.webp`,
     title: "QA Media ảnh",
     alt: "Ảnh test",
     tags: ["qa", "test"],
@@ -1137,4 +1137,112 @@ test("tokenVersion tăng khi đổi mật khẩu và khi khoá tài khoản", as
   assert.equal(afterDisable.tokenVersion, afterReset.tokenVersion + 1);
 
   await deleteAdminUser(created.id, adminId);
+});
+
+test("tự đổi mật khẩu: xác minh mật khẩu cũ, audit và tokenVersion", async () => {
+  const { changeOwnPassword, createAdminUser, deleteAdminUser } = await import(
+    "@/server/auth/admin-users"
+  );
+  const { authenticateAdmin } = await import("@/server/auth/authenticate");
+
+  const email = `qa-self-password-${randomUUID().slice(0, 6)}@admin-ops.test`;
+  const OLD_PASSWORD = "QaTest#2026";
+  const NEW_PASSWORD = "QaTest#2027";
+  const created = await createAdminUser(
+    { email, name: "QA Self Password", password: OLD_PASSWORD, role: "editor" },
+    adminId,
+  );
+
+  try {
+    const before = await prisma.adminUser.findUniqueOrThrow({
+      where: { id: created.id },
+      select: { tokenVersion: true },
+    });
+
+    // Sai mật khẩu hiện tại: không đổi gì, không ghi audit.
+    await assert.rejects(
+      () =>
+        changeOwnPassword(created.id, {
+          currentPassword: "SaiMatKhau#2026",
+          newPassword: NEW_PASSWORD,
+        }),
+      (error: { code?: string; status?: number }) =>
+        error.code === "INVALID_CURRENT_PASSWORD" && error.status === 400,
+    );
+
+    // Mật khẩu mới yếu.
+    await assert.rejects(
+      () =>
+        changeOwnPassword(created.id, {
+          currentPassword: OLD_PASSWORD,
+          newPassword: "123",
+        }),
+      (error: { code?: string }) => error.code === "WEAK_PASSWORD",
+    );
+
+    // Trùng mật khẩu hiện tại.
+    await assert.rejects(
+      () =>
+        changeOwnPassword(created.id, {
+          currentPassword: OLD_PASSWORD,
+          newPassword: OLD_PASSWORD,
+        }),
+      (error: { code?: string }) => error.code === "PASSWORD_UNCHANGED",
+    );
+
+    const unchanged = await prisma.adminUser.findUniqueOrThrow({
+      where: { id: created.id },
+      select: { tokenVersion: true },
+    });
+    assert.equal(unchanged.tokenVersion, before.tokenVersion);
+    assert.equal(
+      await prisma.adminAuditLog.count({
+        where: { entityId: created.id, action: "admin.password_self" },
+      }),
+      0,
+      "thao tác thất bại không được ghi audit",
+    );
+
+    await changeOwnPassword(created.id, {
+      currentPassword: OLD_PASSWORD,
+      newPassword: NEW_PASSWORD,
+    });
+
+    const after = await prisma.adminUser.findUniqueOrThrow({
+      where: { id: created.id },
+      select: { tokenVersion: true },
+    });
+    assert.equal(after.tokenVersion, before.tokenVersion + 1);
+    assert.equal(await authenticateAdmin(email, OLD_PASSWORD), null);
+    assert.ok(await authenticateAdmin(email, NEW_PASSWORD));
+
+    const audit = await prisma.adminAuditLog.findFirstOrThrow({
+      where: { entityId: created.id, action: "admin.password_self" },
+      select: { entity: true, adminId: true, meta: true },
+    });
+    assert.equal(audit.entity, "admin_user");
+    assert.equal(audit.adminId, created.id);
+    assert.equal((audit.meta as { email?: string }).email, email);
+    assert.equal(
+      JSON.stringify(audit.meta).includes(NEW_PASSWORD),
+      false,
+      "audit không được chứa mật khẩu",
+    );
+  } finally {
+    await deleteAdminUser(created.id, adminId);
+  }
+});
+
+test("tự đổi mật khẩu: tài khoản không tồn tại trả 404", async () => {
+  const { changeOwnPassword } = await import("@/server/auth/admin-users");
+
+  await assert.rejects(
+    () =>
+      changeOwnPassword(999_999_999, {
+        currentPassword: "QaTest#2026",
+        newPassword: "QaTest#2027",
+      }),
+    (error: { code?: string; status?: number }) =>
+      error.code === "ADMIN_NOT_FOUND" && error.status === 404,
+  );
 });

@@ -22,7 +22,7 @@ import {
   groupFor,
   normalizeDestinationCategory,
 } from "@/lib/destinations/categories";
-import { toLocalImage } from "@/lib/images";
+import { toImageAsset } from "@/lib/images";
 import { toSlug } from "@/lib/slug";
 
 type NumericValue =
@@ -143,7 +143,7 @@ export function toDestinationRecord(row: DestinationRow): DestinationRecord {
     description: row.description ?? "",
     bestSeason: row.bestSeason ?? "",
     travelNote: row.travelNote ?? "",
-    image: toLocalImage(row.coverImageUrl, row.name),
+    image: toImageAsset(row.coverImageUrl, row.name),
     lat: toNumberOrNull(row.lat),
     lng: toNumberOrNull(row.lng),
     sortOrder: row.sortOrder,
@@ -178,7 +178,7 @@ export function toPostRecord(row: PostRow): PostRecord {
     category: "kinh-nghiem",
     tags: toStringArray(row.tags),
     topic: normalizePostTopic(row.topic),
-    coverImage: toLocalImage(row.coverImageUrl, row.title) ?? {
+    coverImage: toImageAsset(row.coverImageUrl, row.title) ?? {
       src: POST_FALLBACK_IMAGE_SRC,
       alt: row.title,
     },
@@ -199,7 +199,7 @@ export function toCuisineRecord(row: CuisineRow): CuisineRecord {
     description: row.description ?? "",
     whereToEat: row.whereToEat ?? "",
     province: row.province ?? "",
-    image: toLocalImage(row.imageUrl, row.name),
+    image: toImageAsset(row.imageUrl, row.name),
     sortOrder: row.sortOrder,
   };
 }

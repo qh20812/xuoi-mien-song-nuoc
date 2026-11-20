@@ -5,7 +5,7 @@
  * gửi lên `POST /api/orders` luôn tồn tại, tránh lỗi `DEPARTURE_NOT_FOUND`.
  */
 import type { BookingTourOption } from "@/lib/contracts/booking";
-import { toLocalImage } from "@/lib/images";
+import { toImageAsset } from "@/lib/images";
 import prisma from "@/lib/prisma";
 import { getBookingSettings } from "@/server/settings/get-booking-settings";
 import { DEPARTURE_SELECT, toDepartureOption } from "@/server/catalog/dto";
@@ -64,7 +64,7 @@ export async function listBookableTours(): Promise<BookingTourOption[]> {
       durationNights: tour.durationNights,
       priceAdult: tour.basePriceAdult,
       priceChild: tour.basePriceChild,
-      coverImage: toLocalImage(tour.coverImageUrl, tour.name),
+      coverImage: toImageAsset(tour.coverImageUrl, tour.name),
       departures,
     };
   });

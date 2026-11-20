@@ -648,9 +648,9 @@ B0 ──▶ B1 ──▶ B2 ──▶ B3
   - [x] **D9.6** Xoá fixture domain + docs + ratchet coverage
 - [ ] **D10** Hoàn thiện vận hành
   - [x] **D10.1** Badge tin mới chưa đọc
-  - [ ] **D10.2** Đổi mật khẩu tự phục vụ + buộc đăng nhập lại
-  - [ ] **D10.3** Màn audit log + migration index
-  - [ ] **D10.4** Upload ảnh Cloudinary + chính sách URL ảnh
+  - [x] **D10.2** Đổi mật khẩu tự phục vụ + buộc đăng nhập lại
+  - [x] **D10.3** Màn audit log + migration index
+  - [x] **D10.4** Upload ảnh Cloudinary + chính sách URL ảnh
 
 ### Điều kiện chặn
 
@@ -1794,6 +1794,46 @@ Mỗi slice phải qua đủ cổng `tsc + lint + build + npm test` và smoke te
 | **Test** | Sai mật khẩu hiện tại, mật khẩu yếu, trùng mật khẩu cũ, audit, `tokenVersion +1`, mật khẩu cũ fail / mới pass |
 | **Done khi** | Đổi mật khẩu → bị đăng xuất; đăng nhập bằng mật khẩu mới OK; mật khẩu cũ fail; audit có dòng `admin.password_self` |
 
+> **Đã làm & kiểm chứng**
+>
+> - **Service:** `server/auth/admin-users.ts#changeOwnPassword` — `ADMIN_NOT_FOUND` 404 (không
+>   tồn tại/đã khoá), `INVALID_CURRENT_PASSWORD` 400, `WEAK_PASSWORD` 400,
+>   `PASSWORD_UNCHANGED` 400. Thành công: update hash + `tokenVersion: { increment: 1 }` +
+>   audit `admin.password_self` trong **một transaction**, meta chỉ có `email`. Lỗi không ghi
+>   audit, không bump phiên bản.
+> - **Action:** `app/admin/(dashboard)/account/actions.ts` — zod cho 3 ô + refine khớp mật khẩu,
+>   `requireAdminPage` (mọi role), lỗi trả `{ error }` để hiện inline, thành công xoá
+>   `ADMIN_COOKIE` rồi `redirect("/admin/login?ok=password")`.
+> - **UI:** trang `/admin/account` (thông tin tài khoản + card đổi mật khẩu);
+>   `components/admin/change-password-form.tsx` dùng `useActionState`, **input controlled**
+>   (lỗi không mất nội dung), toggle hiện/ẩn mật khẩu có `aria-pressed`, nút pending.
+> - **Login:** `/admin/login` đọc `?ok=password`, hiện banner `role="status"`
+>   "Đã đổi mật khẩu. Vui lòng đăng nhập lại bằng mật khẩu mới."
+> - **Nav (quyết định #7):** `AdminNavLinks` gom **3 nhóm** Vận hành / Nội dung / Hệ thống,
+>   nhóm rỗng tự ẩn; đổi "Tài khoản" → **"Người dùng"**, thêm **"Tài khoản của tôi"**
+>   (`/admin/account`, không cần capability). Sidebar + drawer có vùng nav
+>   `min-h-0 flex-1 overflow-y-auto`, footer "Đăng xuất" cố định. Trang `/admin/users` đổi
+>   title/breadcrumb thành "Người dùng quản trị".
+> - **Test:** +2 case trong `scripts/tests/admin-content.test.mts` — (1) sai mật khẩu hiện tại
+>   không đổi gì/không audit, mật khẩu yếu, trùng cũ, thành công thì `tokenVersion +1`,
+>   `authenticateAdmin` cũ fail/mới pass, audit đúng `entity`/`adminId`/`meta` và không chứa
+>   mật khẩu; (2) actor không tồn tại → 404. Tổng **226/226**.
+> - **Cổng:** `tsc` ✅ · `lint` 0 warning · `build` ✅ (`/admin/account` là `ƒ`) ·
+>   `npm test` **226/226** · `test:coverage` exit 0 — **86.84 / 88.67 / 93.93**
+>   (giữ gate 84/88/92; D10.1 đo 86.75/88.62/93.91 nên không ratchet).
+> - **Live verify (dev:local, owner seed):** đăng nhập → `/admin/account` 200, có 3 nhóm nav,
+>   mục "Người dùng" + "Tài khoản của tôi". POST form đổi mật khẩu → **303**
+>   `Location: /admin/login?ok=password`, cookie `xmsn_admin` bị xoá; GET `/admin` bằng cookie cũ
+>   rơi về `/admin/login?next=%2Fadmin`; mật khẩu cũ **401**, mật khẩu mới **200**; đổi lại
+>   mật khẩu cũ thành công. DB dev: `tokenVersion = 2` (đổi 2 lần), 2 dòng audit
+>   `admin.password_self` với `meta = { email }` — không có mật khẩu. Đã trả mật khẩu seed về
+>   nguyên trạng.
+> - **Bẫy gặp thật:** đặt `requireAdminPage` trực tiếp trong page (không qua
+>   `requireCapabilityPage`) làm dev log ném `unstable value new Date()` từ `jwtVerify` dưới
+>   `cacheComponents`. Đã thêm `await connection()` đầu page như `layout`/các page admin khác.
+> - **Không cần migration** (`token_version` có từ D7), không thêm capability.
+> - **Docs:** `README.md` (tính năng + cây thư mục + bước go-live), `DESIGN-ADMIN.md` §4/§12/§14.
+
 #### D10.3 · Màn audit log
 
 | | |
@@ -1807,6 +1847,44 @@ Mỗi slice phải qua đủ cổng `tsc + lint + build + npm test` và smoke te
 | **Bảo mật** | `requireCapabilityPage("audit:read")` → chỉ owner; admin/editor vào URL thấy `AccessDenied` |
 | **Test** | Filter entity/action/admin/ngày, order, cap, invalid date, owner-only, 404/empty state |
 | **Done khi** | Lọc `entity=order` + `action=order.` ra đúng; `admin`/`editor` không vào được; bảng lớn vẫn phân trang nhanh |
+
+> **Đã làm & kiểm chứng**
+>
+> - **Migration `20261121100000_admin_audit_indexes`:** thêm index `[createdAt]`,
+>   `[adminId, createdAt]`, `[action, createdAt]`, `[entity, createdAt]`, giữ index cũ
+>   `[entity, entityId, createdAt]`. SQL sinh bằng `migrate diff`, chỉ chứa 4 `CREATE INDEX`;
+>   đã `db:migrate:dev` + `db:migrate:test`.
+> - **`lib/time.ts`:** thêm `isDateOnly` (đúng định dạng + ngày có thật) và `vnDayStart`
+>   (00:00 VN → instant UTC). Unit test khoá `2026-02-31` là sai và
+>   `vnDayStart("2026-11-21") === 2026-11-20T17:00Z`.
+> - **`lib/audit/labels.ts`:** 12 entity + **39 action** thực tế trong code; fallback giữ nguyên
+>   văn giá trị lạ; options cho select. Phát hiện tên entity khác plan: **`tour_departure`** và
+>   **`setting`** (số ít), không phải `departure`/`settings`.
+> - **`server/audit/admin-audit.ts`:** `listAdminAuditLogs` (entity exact, action **prefix**,
+>   adminId, from/to theo ngày VN với `to` inclusive, order `createdAt desc, id desc`,
+>   `pageSize` mặc định 50 cap 100, join admin) + `listAuditAdminOptions` (gồm cả tài khoản khoá).
+>   Ngày sai bị bỏ qua; `adminId` null trả `admin: null`.
+> - **`app/admin/(dashboard)/audit/page.tsx`:** `requireCapabilityPage("audit:read")`, owner-only,
+>   `AccessDenied` cho role khác; form GET đủ 5 filter + nút Lọc/Xoá lọc; bảng 5 cột ở `xl+`,
+>   card ở dưới; `meta` trong `<details><pre>`; empty state 2 nhánh; phân trang giữ filter.
+> - **Nav:** thêm **“Nhật ký”** (`/admin/audit`, `ScrollText`, `audit:read`) vào nhóm Hệ thống.
+> - **Test:** `scripts/tests/audit.test.mts` (8 case: order/pagination, entity+prefix, admin,
+>   biên ngày VN 16:59Z vs 17:00Z, ngày sai bị bỏ qua, pageSize cap, admin null, empty/options);
+>   `scripts/tests/unit/audit-labels.test.ts` (4 case) và 2 case mới trong `time.test.ts`.
+>   Tổng **240/240**.
+> - **Cổng:** `tsc` ✅ · `lint` 0 warning · `build` ✅ (`/admin/audit` là `ƒ`, 73 route) ·
+>   `npm test` **240/240** · `test:coverage` exit 0 — **87.13 / 88.79 / 94.01**;
+>   ratchet `test:coverage` lines **84 → 85** (branch 88 / functions 92 giữ nguyên).
+>   `test:coverage:unit` **98.06 / 94.57 / 94.70** (gate 96/92/93).
+> - **Live verify (dev:local):** owner `/admin/audit` 200, thấy 3 bản ghi thật
+>   (2 `admin.password_self` + 1 `order.confirm`); lọc `entity=admin_user&action=admin.password_`
+>   đúng; `action=khongtontai.` → “Không có bản ghi phù hợp.”; `from=khong-phai-ngay` bị bỏ qua;
+>   seed tạm 55 dòng → “55 bản ghi”, “Trang 1 / 2”, link sau
+>   `/admin/audit?entity=setting&page=2`, link trước bỏ `page` nhưng giữ `entity`; xoá seed sau test.
+>   Tài khoản `editor` tạm: `/admin/audit` 200 nhưng hiện AccessDenied, không có form lọc, menu
+>   “Nhật ký” ẩn; đã xoá tài khoản.
+> - **Không thêm API route** — màn chỉ đọc, dùng server component trực tiếp service.
+> - **Docs:** `README.md`, `DESIGN-ADMIN.md` §14.
 
 #### D10.4 · Upload ảnh Cloudinary
 
@@ -1825,6 +1903,56 @@ Mỗi slice phải qua đủ cổng `tsc + lint + build + npm test` và smoke te
 | **Bẫy** | Không ghi file vào `public/images` trên production; `next/image` cần remotePatterns; `sharp` phải là dependency trực tiếp; Cloudinary timeout → 1 retry, không tạo DB row dở |
 | **Test** | Unit: `isManagedImageUrl`, `toImageAsset`, sharp resize/format, signature/uploader mock; route: 401/403, sai MIME, quá size, Cloudinary lỗi; DB: tạo media + audit, xoá bị chặn khi đang dùng, xoá asset mock |
 | **Done khi** | Upload ảnh trên `/admin/media` → row DB + asset Cloudinary; ảnh hiện trong datalist và render được trên public; xoá ảnh không dùng → asset mất; xoá ảnh đang dùng → bị chặn |
+
+> **Đã làm & kiểm chứng**
+>
+> - **Dependencies:** `cloudinary@^2.11.0` + `sharp@^0.35.5` vào `dependencies`;
+>   `next.config.ts` thêm `serverExternalPackages: ["cloudinary","sharp"]`.
+> - **Migration `20261121110000_media_public_id`:** `media.public_id VARCHAR(255) NULL`
+>   + unique index. Đã áp **dev** và **test**; **production chưa áp** (phải chạy
+>   `prisma migrate deploy` trước khi deploy code).
+> - **URL policy:** `lib/media/image-url.ts` (`isLocalImageUrl`, `isCloudinaryImageUrl`,
+>   `isManagedImageUrl`) + `lib/images.ts` đổi `toLocalImage` → `toImageAsset`.
+>   Thay ở `lib/content/mappers.ts`, `server/content/posts-query.ts`,
+>   `server/catalog/list-bookable-tours.ts`, `lib/booking/success.ts`.
+>   Validator 5 domain (`admin-media`, `admin-tours`, `admin-destinations`,
+>   `admin-posts`, `admin-cuisines`) dùng chung; thông báo “/images/… hoặc URL Cloudinary”.
+> - **`next.config.ts`:** `images.remotePatterns` **chỉ** `https://res.cloudinary.com`,
+>   pathname `/<cloud_name>/image/upload/**` lấy từ `CLOUDINARY_URL`, fallback `/**` nếu thiếu env.
+> - **Storage adapter:** `server/media/cloudinary.ts` — `createCloudinaryStorage(client, env)`
+>   để test bằng client giả; upload stream WebP, retry 1 lần, `destroy` idempotent
+>   (`ok`/`not found`), `thumbnailUrl` 320×320.
+> - **Upload service:** `server/media/upload-media.ts` — MIME jpeg/png/webp/avif, ≤ 8 MB,
+>   `sharp` `limitInputPixels` 40MP, `.rotate()`, resize inside 1920, WebP q78; upload →
+>   transaction tạo `Media` (`url`, `publicId`, `thumbnailUrl`, width/height, tags) + audit
+>   `media.upload`; DB lỗi sau upload thì destroy asset, storage lỗi → `502 MEDIA_UPLOAD_FAILED`.
+> - **Route:** `POST /api/admin/media/upload` — `requireCapabilityApi("content:write")`,
+>   rate limit 10/10 phút theo admin, chặn body >10 MB, trả `201 { ok, media }`.
+> - **UI:** `components/admin/media-upload-form.tsx` (file + title/alt/tags, pending/error,
+>   `router.refresh()`); `/admin/media` thêm khối “Tải ảnh lên”, preview dùng `toImageAsset`,
+>   hiện nguồn Cloudinary/nhập tay.
+> - **Xoá media:** pre-check `tour.coverImageUrl`, `destination.coverImageUrl`,
+>   `post.coverImageUrl`, `cuisine.imageUrl` → `409 MEDIA_IN_USE` (kèm counts); có `publicId`
+>   thì `destroy` trước, lỗi → `502 MEDIA_DELETE_FAILED`; row legacy không gọi Cloudinary.
+> - **Sửa media:** row có `publicId` không cho đổi `url`/`type` (`409 MEDIA_MANAGED_URL`);
+>   title/alt/tags/sort/isActive vẫn sửa được.
+> - **Test:** +7 case `scripts/tests/media-upload.test.mts` (resize/WebP/audit, MIME/size/hỏng,
+>   storage lỗi, destroy + audit, chặn ảnh đang dùng, media nhập tay, guard update);
+>   +5 case `cloudinary-storage.test.ts`; +4 case `media-image-url.test.ts`; `images.test.ts`
+>   chuyển sang `toImageAsset` + Cloudinary. Tổng **257/257**.
+> - **Cổng:** `tsc` ✅ · `lint` 0 warning · `build` ✅ (74 route, có `/api/admin/media/upload`) ·
+>   `npm test` **257/257** · `test:coverage` exit 0 — **86.92 / 88.68 / 93.83**
+>   (gate lines **85** / branches 88 / functions 92; `cloudinary.ts` 96.48% lines).
+> - **Live verify (dev:local, Cloudinary thật):** không cookie → **401**; `editor` → **201**
+>   (đúng ma trận: editor có `content:write`, nên không có ca 403 với role thật);
+>   `text/plain` → **400 MEDIA_INVALID_TYPE**; PNG 800×600 → **201**, URL
+>   `res.cloudinary.com/duj1xyanj/image/upload/...webp`, `publicId`, thumbnail 320×320,
+>   row DB + 1 audit `media.upload`; `/_next/image?url=…` → **200** (remotePatterns đúng);
+>   `/admin/media` 200 có form upload + URL mới; xoá qua service → row `null`, asset trả **404**.
+>   Dữ liệu dev + production quét read-only: **0 URL ảnh ngoài** `/images` hoặc Cloudinary.
+> - **Không thêm API admin khác**; route upload là transport mỏng, logic nằm trong service.
+> - **Docs:** `README.md` (tính năng, env, tree `server/media`), `DESIGN-ADMIN.md` §14,
+>   `.env.example`.
 
 **Thứ tự D10:** `D10.1 → D10.2 → D10.3 → D10.4`.
 Mỗi slice qua `tsc + lint + build + npm test` và live smoke test trước khi sang slice kế.
@@ -1935,4 +2063,12 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | Ngoài plan | — | `app/admin/login/page.tsx:16` từng ném `Blocking Route` vì `new Date()` dưới `cacheComponents`; đã bọc `"use cache"` (xem D0) |
 | Ngoài plan | — | `prisma/seed.mjs` đã chạy lại trên **DB production** ngày 16/11/2026: tours/destinations/posts/faqs/media quay về nội dung seed. Nếu trước đó có sửa tay trên production thì đã bị ghi đè (không đụng `orders`, khách hàng, mật khẩu admin) |
 | Ngoài plan | — | `settings.ogImage` vẫn là URL Wikimedia cũ vì `seedSettings()` chỉ update khi `SEED_FORCE_SETTINGS=1`. Biến này **không được đọc ở đâu** trong code nên không ảnh hưởng render; sẽ dọn khi D9 chuyển `seo` sang DB |
+| Ngoài plan | — | **21/11/2026 (D10.2):** quyết định #7 (gom nhóm nav + vùng cuộn) làm ngay trong D10.2 thay vì để D10.3 — sidebar 12 mục đã tràn ở viewport 768px, thêm mục "Tài khoản của tôi" là mục thứ 13. Nav chia 3 nhóm Vận hành / Nội dung / Hệ thống, vùng nav `min-h-0 flex-1 overflow-y-auto`, footer cố định |
+| Ngoài plan | — | **21/11/2026 (D10.2):** thêm route `/admin/account` + `server/auth/admin-users.ts#changeOwnPassword`; không migration/capability mới. `changeOwnPassword` là luồng riêng, **không** thay `resetAdminPassword` (owner reset người khác). Test +2, tổng **226/226**; coverage **86.84 / 88.67 / 93.93** (giữ gate 84/88/92 vì chỉ nhích 0.09 so với D10.1) |
+| Ngoài plan | — | **21/11/2026 (D10.2):** page dùng `requireAdminPage` trực tiếp phải tự `await connection()` — nếu không, `jwtVerify` chạm `new Date()` và `cacheComponents` ném `unstable value new Date()` khi prerender. Chỉ `requireCapabilityPage` có sẵn `connection()` |
+| Ngoài plan | — | **21/11/2026 (D10.3):** entity thật là `tour_departure` và `setting` (số ít), không phải `departure`/`settings`; tổng **39 action**. Migration `20261121100000_admin_audit_indexes` chỉ thêm 4 index. Test +14 (audit 8 + labels 4 + time 2), tổng **240/240**; coverage **87.13 / 88.79 / 94.01** → ratchet gate full lines **84 → 85** |
+| Ngoài plan | — | **21/11/2026 (D10.3):** lọc ngày dùng `vnDayStart` (00:00 VN) + `to + 1 ngày` exclusive; ngày sai bị bỏ qua thay vì báo lỗi. Bộ lọc admin **không** có option “hệ thống/đã xoá”; bản ghi `adminId = null` vẫn hiện nhãn “Hệ thống / đã xoá” trong bảng |
+| Ngoài plan | — | **21/11/2026 (D10.4):** `Media.public_id` (migration `20261121110000_media_public_id`) đã áp **dev/test**, **chưa áp production** — phải `prisma migrate deploy` trước khi deploy code, nếu không mọi query `media` sẽ ném `P2022 unknown column public_id`. Đã quét read-only dev + production: 0 URL ảnh ngoài `/images`/Cloudinary |
+| Ngoài plan | — | **21/11/2026 (D10.4):** route upload trả **201** cho `editor` vì ma trận D6 cấp `content:write` cho editor; không có role thật nào bị 403 ở route này (chỉ 401 khi chưa đăng nhập). `next.config.ts` mở `remotePatterns` hẹp cho `res.cloudinary.com`; `toLocalImage` đã đổi tên thành `toImageAsset` và nhận cả Cloudinary |
+| Ngoài plan | — | **21/11/2026 (D10.4):** media có `publicId` **không cho sửa URL/loại** (`409 MEDIA_MANAGED_URL`) để tránh lệch asset; media nhập tay vẫn sửa tự do. Xoá media kiểm 4 bảng cover trước khi destroy; Cloudinary lỗi khi destroy giữ nguyên row và trả 502 |
 

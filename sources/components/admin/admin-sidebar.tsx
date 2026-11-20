@@ -39,7 +39,7 @@ export function AdminSidebar({
         </span>
       </Link>
 
-      <div className="mt-2">
+      <div className="mt-2 min-h-0 flex-1 overflow-y-auto">
         <AdminNavLinks
           capabilities={capabilities}
           unreadMessages={unreadMessages}
