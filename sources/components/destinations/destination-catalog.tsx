@@ -25,6 +25,14 @@ const CURATED = {
   coastal: ["canh-dong-dien-gio-bac-lieu", "cot-co-ha-noi-mui-ca-mau", "nha-tho-tac-say"],
 };
 
+const CURATED_SLUGS = new Set([
+  CURATED.featured,
+  ...CURATED.pair,
+  ...CURATED.heritage,
+  ...CURATED.trio,
+  ...CURATED.coastal,
+]);
+
 function FilterGroup({
   label,
   options,
@@ -136,6 +144,10 @@ export function DestinationCatalog({ destinations }: DestinationCatalogProps) {
   );
   const isDefault = activeProvince === "all" && activeCategory === "all";
   const hasFilters = !isDefault;
+  const extraDestinations = useMemo(
+    () => destinations.filter((destination) => !CURATED_SLUGS.has(destination.slug)),
+    [destinations],
+  );
 
   function resetFilters() {
     setActiveProvince("all");
@@ -303,6 +315,23 @@ export function DestinationCatalog({ destinations }: DestinationCatalogProps) {
               <DestinationCard destination={destination} variant="lead" />
             ) : null;
           })()}
+
+          {extraDestinations.length > 0 ? (
+            <section>
+              <h2 className="font-display text-2xl font-semibold text-ink">
+                Điểm đến khác
+              </h2>
+              <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {extraDestinations.map((destination) => (
+                  <DestinationCard
+                    key={destination.slug}
+                    destination={destination}
+                    variant="compact"
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
         </div>
       ) : null}
 

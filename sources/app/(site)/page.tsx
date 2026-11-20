@@ -10,6 +10,7 @@ import { PromiseStrip } from "@/components/home/promise-strip";
 import { homePageData } from "@/lib/fixtures/home";
 import { closingImage, heroImage } from "@/lib/fixtures/home-media";
 import { siteSettings } from "@/lib/fixtures/site";
+import { listHomeDestinations } from "@/server/content/public-destinations";
 
 export const metadata: Metadata = {
   title: "Tour miền Tây, U Minh Hạ, Đất Mũi",
@@ -17,14 +18,16 @@ export const metadata: Metadata = {
     "Khám phá tour Sài Gòn – Cần Thơ – U Minh Hạ – Đất Mũi: chợ nổi Cái Răng, rừng tràm, mốc tọa độ cực Nam. Đặt giữ chỗ online, xác nhận qua điện thoại/Zalo.",
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const destinations = await listHomeDestinations(4);
+
   return (
     <>
       <HeroSection image={heroImage} />
       <PromiseStrip />
       <FeaturedToursSection tours={homePageData.tours} />
       <JourneySection legs={homePageData.journey} />
-      <DestinationsSection destinations={homePageData.destinations} />
+      <DestinationsSection destinations={destinations} />
       <CuisineSection cuisines={homePageData.cuisines} />
       <FaqSection faqs={homePageData.faqs} settings={siteSettings} />
       <HomeCtaSection image={closingImage} settings={siteSettings} />

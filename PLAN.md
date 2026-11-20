@@ -641,7 +641,7 @@ B0 ──▶ B1 ──▶ B2 ──▶ B3
 - [x] **D8** Kênh khách gửi đánh giá
 - [ ] **D9** Public đọc DB + CRUD điểm đến/bài viết/món ăn/FAQ
   - [x] **D9.1** Schema/migration/seed/mapper thuần (`Post.topic`, `relatedTourCodes`, `checklist`, `isFeatured`; `Faq.placement`)
-  - [ ] **D9.2** Điểm đến — loader + `/diem-den/[slug]` + admin CRUD + cache
+  - [x] **D9.2** Điểm đến — loader + `/diem-den/[slug]` + admin CRUD + cache
   - [ ] **D9.3** Bài viết — loader + admin CRUD + featured theo DB
   - [ ] **D9.4** Món ăn — loader + admin CRUD + home/tour detail
   - [ ] **D9.5** FAQ — loader + admin CRUD + home/liên hệ theo `placement`
@@ -1496,6 +1496,34 @@ không ai thấy** — đúng như đã cảnh báo khi chốt phạm vi P4.
 | **Test** | Loader (published/order/tourRefs/empty) + admin service (create/update/delete/trùng slug/audit/404) + mapper |
 | **Done khi** | Sửa điểm đến trong admin → `/diem-den`, `/diem-den/[slug]`, home, tour detail đổi ngay; draft biến khỏi public; xoá → 404; DB rỗng → empty state |
 
+> **Đã làm & kiểm chứng**
+>
+> - **Loader:** `server/content/destinations-query.ts` (query thô, testable không cần Next runtime)
+>   + `server/content/public-destinations.ts` (`"use cache"`, `cacheLife("max")`,
+>   `cacheTag("content:destinations")`). Query chỉ lấy `status = published`, order
+>   `sortOrder/name`, `tourRefs` qua `TourDestination` + tour published.
+> - **Public:** `/diem-den` chuyển sang server loader + empty state; **thêm mới**
+>   `/diem-den/[slug]` với ảnh bìa, mô tả, mùa đẹp, ghi chú, toạ độ, tour liên quan,
+>   `generateMetadata` + `generateStaticParams`. Home lấy top 4 điểm đến có ảnh; tour detail
+>   lấy điểm đến theo `TourDestination`. `DestinationCatalog` thêm section "Điểm đến khác"
+>   để điểm đến do admin tạo vẫn hiện trong layout mặc định.
+> - **Admin:** `server/content/admin-destinations.ts` — list/create/update/delete, slug bất biến,
+>   validate slug/name/province/category/status/sort/ảnh/lat/lng, chặn tour không published,
+>   audit `destination.create|update|delete` trong transaction. UI
+>   `/admin/destinations` + `/admin/destinations/[id]`, form dùng datalist media và checkbox tour;
+>   action gọi `updateTag("content:destinations")`.
+> - **Tests:** `scripts/tests/content-destinations.test.mts` (11 case) phủ loader published/draft/order/
+>   tourRefs/home, CRUD + audit + slug trùng + 404 + FK + validation. Tổng `npm test` **192/192**.
+> - **Coverage:** **84.36 / 88.72 / 93.68** (gate 80/88/92). Loại `server/content/public-*.ts`
+>   khỏi coverage vì `cacheLife/cacheTag` chỉ chạy trong Next runtime; query + admin service vẫn
+>   được phủ.
+> - **Live verify (dev:local):** `/diem-den` và `/diem-den/cho-noi-cai-rang` 200, có tên điểm đến;
+>   `/admin/destinations` và `/admin/destinations/1` 200; log không có Instant/Blocking/unstable.
+> - **Build:** `/diem-den` là `○`; các slug seed của `/diem-den/[slug]` là `○`, slug mới rơi vào
+>   `◐` và render theo request.
+> - **Sai lệch nhỏ:** không dùng fallback fixture (D9.0 dự kiến tạm); DB rỗng → empty state ngay,
+>   đúng “Done khi” của D9.2 và tránh hiển thị nội dung cũ sau khi admin xoá hết.
+
 #### D9.3 · Bài viết (vertical slice)
 
 | | |
@@ -1670,6 +1698,7 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | §10.0 (đo lúc viết plan) | `build 50 route` · `npm test 156/156` · coverage 81.8 / 88.0 / 93.8 (gate 72 / 88 / 92) | Sau D8: **51 route** (thêm `/api/reviews`), **171 test**, coverage **82.12 / 88.22 / 94.09** (gate 80 / 88 / 92) |
 | §D9 (bảng cũ) | "tách 5 bước" · D9.1 fallback fixture · D9.5 xoá `lib/fixtures/*` trừ `site.ts` | Đổi thành **6 slice** D9.1–D9.6; fallback chỉ tạm đến D9.6 rồi dùng empty state; giữ `site.ts`, `home.ts` (tours/journey), `tour-details.ts` (lịch trình) |
 | Ngoài plan | — | `/diem-den/[slug]` chưa từng tồn tại dù mọi card link tới → D9.2 thêm mới, không phải sửa |
+| Ngoài plan | — | D9.2 loại `server/content/public-*.ts` khỏi coverage (wrapper `"use cache"`/`cacheLife` chỉ chạy trong Next runtime); query + admin service vẫn được test |
 | Ngoài plan | — | `Post` thiếu `topic`/`relatedTourCodes`/`checklist`/`isFeatured`; `Faq` thiếu `placement` → D9.1 thêm migration |
 | Ngoài plan | — | D8 render form đánh giá trong `components/lookup/order-lookup.tsx`, không phải `app/(site)/tra-cuu-don/page.tsx` (trang server không biết trạng thái đơn) |
 | Ngoài plan | — | **19/11/2026:** admin login production lỗi `P2022 admin_users.token_version does not exist` vì migration D7 chưa lên production. Đã backup `admin_users`/`orders` rồi `prisma migrate deploy`; `migrate status` up to date. Local dev chuyển sang `npm run dev:local`; `lib/prisma.ts` cảnh báo nếu dev trỏ production |

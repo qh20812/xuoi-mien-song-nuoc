@@ -4,23 +4,29 @@ import { MapPin, Route } from "lucide-react";
 import { DestinationCatalog } from "@/components/destinations/destination-catalog";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { destinationListingData } from "@/lib/destinations/listing";
 import { siteSettings } from "@/lib/fixtures/site";
 import { cn } from "@/lib/utils";
+import { listPublicDestinations } from "@/server/content/public-destinations";
 
 export const metadata: Metadata = {
   title: "Điểm đến miền Tây",
   description:
-    "Khám phá 11 điểm đến ở Đồng Tháp, Cần Thơ và Cà Mau: chợ nổi, rừng tràm, kiến trúc cổ và vùng biển Đất Mũi.",
+    "Khám phá các điểm đến ở Đồng Tháp, Cần Thơ và Cà Mau: chợ nổi, rừng tràm, kiến trúc cổ và vùng biển Đất Mũi.",
 };
 
-export default function DestinationListingPage() {
+export default async function DestinationListingPage() {
+  const destinations = await listPublicDestinations();
   const provinceCount = new Set(
-    destinationListingData.map((destination) => destination.provinceSlug),
+    destinations.map((destination) => destination.provinceSlug),
   ).size;
-  const connectedCount = destinationListingData.filter(
+  const connectedCount = destinations.filter(
     (destination) => destination.tourRefs.length > 0,
   ).length;
+  const tourCount = new Set(
+    destinations.flatMap((destination) =>
+      destination.tourRefs.map((tour) => tour.code),
+    ),
+  ).size;
 
   return (
     <>
@@ -34,9 +40,9 @@ export default function DestinationListingPage() {
               Những miền đất còn giữ nét nguyên sơ
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-sage md:text-lg">
-              Tuyển tập {destinationListingData.length} điểm đến trải dài từ Đồng
-              Tháp qua Cần Thơ đến Cà Mau. Mỗi nơi là một mảnh ghép của chợ nổi,
-              rừng tràm, kiến trúc cổ và vùng cửa sông Nam Bộ.
+              Tuyển tập {destinations.length} điểm đến trải dài từ Đồng Tháp qua
+              Cần Thơ đến Cà Mau. Mỗi nơi là một mảnh ghép của chợ nổi, rừng tràm,
+              kiến trúc cổ và vùng cửa sông Nam Bộ.
             </p>
           </div>
 
@@ -44,11 +50,11 @@ export default function DestinationListingPage() {
             <div className="flex flex-col gap-3 rounded-[16px] bg-surface-warm p-5">
               <div className="flex items-center gap-2.5 text-sm font-semibold text-ink">
                 <MapPin aria-hidden="true" className="size-4 text-clay" />
-                {destinationListingData.length} điểm đến
+                {destinations.length} điểm đến
               </div>
               <div className="flex items-center gap-2.5 text-sm text-sage">
                 <Route aria-hidden="true" className="size-4 text-sage" />
-                {connectedCount} điểm thuộc 3 tuyến tour
+                {connectedCount} điểm thuộc {tourCount} tuyến tour
               </div>
               <p className="border-t border-line pt-3 text-xs leading-5 text-sage">
                 Trải trên {provinceCount} tỉnh/thành đang có trong dữ liệu.
@@ -57,9 +63,23 @@ export default function DestinationListingPage() {
           </div>
         </section>
 
-        <div className="mt-8">
-          <DestinationCatalog destinations={destinationListingData} />
-        </div>
+        {destinations.length === 0 ? (
+          <section className="mx-auto mt-8 flex max-w-xl flex-col items-center rounded-[20px] border border-dashed border-line bg-surface-warm/35 p-10 text-center">
+            <span className="flex size-12 items-center justify-center rounded-full bg-surface text-clay">
+              <MapPin aria-hidden="true" className="size-5" />
+            </span>
+            <h2 className="mt-4 font-display text-xl font-semibold text-ink">
+              Chưa có điểm đến nào
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-sage">
+              Nội dung sẽ xuất hiện khi được thêm trong trang quản trị.
+            </p>
+          </section>
+        ) : (
+          <div className="mt-8">
+            <DestinationCatalog destinations={destinations} />
+          </div>
+        )}
       </Container>
 
       <section className="bg-ink py-16 text-contrast-on-accent lg:py-20">
@@ -72,7 +92,7 @@ export default function DestinationListingPage() {
               Bạn muốn xuôi dòng ghé thăm những điểm đến này?
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-surface/70 md:text-base">
-              Ba hành trình hiện có đưa bạn qua những điểm đến tiêu biểu bằng xe
+              Các hành trình hiện có đưa bạn qua những điểm đến tiêu biểu bằng xe
               du lịch và đường thủy. Lịch khởi hành, giá và số chỗ được cập nhật
               theo từng chuyến.
             </p>
@@ -86,7 +106,7 @@ export default function DestinationListingPage() {
                 "w-full sm:w-auto",
               )}
             >
-              Xem 3 tuyến tour
+              Xem các tuyến tour
             </Link>
             <a
               href={siteSettings.hotlineHref}

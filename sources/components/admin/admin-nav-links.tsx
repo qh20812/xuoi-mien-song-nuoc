@@ -8,6 +8,7 @@ import {
   Images,
   Inbox,
   LayoutDashboard,
+  MapPin,
   Settings,
   Star,
   Users,
@@ -52,6 +53,13 @@ const ADMIN_LINKS: AdminLink[] = [
     icon: CalendarDays,
     exact: false,
     capability: "catalog:write",
+  },
+  {
+    href: "/admin/destinations",
+    label: "Điểm đến",
+    icon: MapPin,
+    exact: false,
+    capability: "content:write",
   },
   {
     href: "/admin/media",
