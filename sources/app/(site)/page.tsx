@@ -10,6 +10,7 @@ import { PromiseStrip } from "@/components/home/promise-strip";
 import { homePageData } from "@/lib/fixtures/home";
 import { closingImage, heroImage } from "@/lib/fixtures/home-media";
 import { siteSettings } from "@/lib/fixtures/site";
+import { listHomeCuisines } from "@/server/content/public-cuisines";
 import { listHomeDestinations } from "@/server/content/public-destinations";
 
 export const metadata: Metadata = {
@@ -19,7 +20,10 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const destinations = await listHomeDestinations(4);
+  const [destinations, cuisines] = await Promise.all([
+    listHomeDestinations(4),
+    listHomeCuisines(6),
+  ]);
 
   return (
     <>
@@ -28,7 +32,7 @@ export default async function HomePage() {
       <FeaturedToursSection tours={homePageData.tours} />
       <JourneySection legs={homePageData.journey} />
       <DestinationsSection destinations={destinations} />
-      <CuisineSection cuisines={homePageData.cuisines} />
+      <CuisineSection cuisines={cuisines} />
       <FaqSection faqs={homePageData.faqs} settings={siteSettings} />
       <HomeCtaSection image={closingImage} settings={siteSettings} />
     </>

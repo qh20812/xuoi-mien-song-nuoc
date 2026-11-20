@@ -1,13 +1,13 @@
 import { Utensils } from "lucide-react";
 import { SectionHeading } from "@/components/ui/section-heading";
-import type { TourDetailData } from "@/lib/contracts/tour";
+import type { CuisineData } from "@/lib/contracts/home";
 
 type TourCuisinesProps = {
-  tour: TourDetailData;
+  cuisines: CuisineData[];
 };
 
-export function TourCuisines({ tour }: TourCuisinesProps) {
-  if (tour.cuisines.length === 0) return null;
+export function TourCuisines({ cuisines }: TourCuisinesProps) {
+  if (cuisines.length === 0) return null;
 
   return (
     <section aria-labelledby="tour-cuisines" className="border-t border-line pt-8">
@@ -19,7 +19,7 @@ export function TourCuisines({ tour }: TourCuisinesProps) {
       />
 
       <div className="mt-7 grid grid-cols-1 gap-x-8 md:grid-cols-2">
-        {tour.cuisines.map((cuisine, index) => (
+        {cuisines.map((cuisine, index) => (
           <article key={cuisine.slug} className="border-t border-line py-5">
             <div className="flex items-start gap-4">
               <span

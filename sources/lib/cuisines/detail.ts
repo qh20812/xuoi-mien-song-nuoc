@@ -1,10 +1,5 @@
 import type { CuisineListingData } from "@/lib/contracts/cuisine";
 import type { TourDetailData } from "@/lib/contracts/tour";
-import {
-  cuisineListingBySlug,
-  cuisineListingData,
-} from "@/lib/cuisines/listing";
-import { tourDetails } from "@/lib/fixtures/tour-details";
 
 export type CuisineMealMatch = {
   dayNumber: number;
@@ -19,12 +14,12 @@ const SLOT_LABELS = {
   dinner: "Bữa tối",
 } as const;
 
-export function getCuisineBySlug(slug: string) {
-  return cuisineListingBySlug.get(slug);
-}
-
-export function getToursForCuisine(cuisine: CuisineListingData) {
-  return tourDetails.filter((tour) =>
+/** Lọc lịch trình tour theo mã tour mà món ăn đang liên kết. */
+export function getToursForCuisine(
+  cuisine: CuisineListingData,
+  tours: TourDetailData[],
+) {
+  return tours.filter((tour) =>
     cuisine.tourRefs.some((ref) => ref.code === tour.code),
   );
 }
@@ -48,17 +43,4 @@ export function getMealForCuisine(
   }
 
   return null;
-}
-
-export function getRelatedCuisines(cuisine: CuisineListingData) {
-  const sameProvince = cuisineListingData.filter(
-    (item) =>
-      item.slug !== cuisine.slug && item.province === cuisine.province,
-  );
-  const others = cuisineListingData.filter(
-    (item) =>
-      item.slug !== cuisine.slug && item.province !== cuisine.province,
-  );
-
-  return [...sameProvince, ...others].slice(0, 3);
 }

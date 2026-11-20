@@ -643,7 +643,7 @@ B0 ──▶ B1 ──▶ B2 ──▶ B3
   - [x] **D9.1** Schema/migration/seed/mapper thuần (`Post.topic`, `relatedTourCodes`, `checklist`, `isFeatured`; `Faq.placement`)
   - [x] **D9.2** Điểm đến — loader + `/diem-den/[slug]` + admin CRUD + cache
   - [x] **D9.3** Bài viết — loader + admin CRUD + featured theo DB
-  - [ ] **D9.4** Món ăn — loader + admin CRUD + home/tour detail
+  - [x] **D9.4** Món ăn — loader + admin CRUD + home/tour detail
   - [ ] **D9.5** FAQ — loader + admin CRUD + home/liên hệ theo `placement`
   - [ ] **D9.6** Xoá fixture domain + docs + ratchet coverage
 - [ ] **D10** Upload ảnh, màn audit log, badge tin mới
@@ -1575,6 +1575,30 @@ không ai thấy** — đúng như đã cảnh báo khi chốt phạm vi P4.
 | **Test** | Loader + admin service + mapper |
 | **Done khi** | Sửa món trong admin → `/am-thuc`, detail, home, tour detail đổi ngay; xoá → 404 |
 
+> **Đã làm & kiểm chứng**
+>
+> - **Loader:** `server/content/cuisines-query.ts` + `server/content/public-cuisines.ts`
+>   (`"use cache"`, `cacheLife("max")`, `cacheTag("content:cuisines")`). Order
+>   `sortOrder asc, name asc`; `tourRefs` qua `TourCuisine` + tour published; `imageUrl` qua
+>   `toLocalImage`; `description`/`whereToEat`/`province` null → `""` cho listing và `null` cho
+>   `CuisineData` (home/tour). Thêm `toCuisineData` vào `lib/content/mappers.ts`.
+> - **Public:** `/am-thuc` và `/am-thuc/[slug]` async loader; `generateStaticParams` async; empty
+>   state khi DB rỗng; related dùng `getRelatedCuisines(cuisine, all)`;
+>   `getToursForCuisine(cuisine, tourDetails)` vẫn lấy lịch trình từ fixture (D9.6 mới dọn nốt).
+> - **Home/tour detail:** `listHomeCuisines(6)` thay `homePageData.cuisines`; `TourCuisines` nhận
+>   `cuisines` từ `listCuisinesForTour` thay vì `tour.cuisines`.
+> - **Admin:** `server/content/admin-cuisines.ts` + `/admin/cuisines` (list/create/edit/delete),
+>   form có checkbox tour, datalist ảnh, slug bất biến; audit `cuisine.create|update|delete`;
+>   action gọi `updateTag("content:cuisines")`; menu admin thêm "Món ăn".
+> - **Tests:** `content-cuisines.test.mts` (9 case) + unit `cuisines-listing` + mapper
+>   `toCuisineData`. Tổng `npm test` **212/212**.
+> - **Coverage:** **86.29 / 88.42 / 93.59** (gate 80/88/92).
+> - **Build:** `/am-thuc` là `○`; các slug seed của `/am-thuc/[slug]` là `○`, slug mới rơi `◐`.
+> - **Live verify (dev:local):** `/am-thuc`, `/am-thuc/lau-mam-u-minh`, `/`,
+>   `/tour/sai-gon-can-tho-u-minh-ha-dat-mui-4n3d`, `/admin/cuisines`, `/admin/cuisines/1` đều
+>   200; admin list/edit render đúng dữ liệu; log không có Blocking/unstable mới (cảnh báo
+>   `new Date()` ở `getBookableDepartures` của `/tour/[slug]` là có sẵn, ngoài phạm vi D9.4).
+
 #### D9.5 · FAQ (vertical slice)
 
 | | |
@@ -1730,6 +1754,8 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | Ngoài plan | — | D9.2 loại `server/content/public-*.ts` khỏi coverage (wrapper `"use cache"`/`cacheLife` chỉ chạy trong Next runtime); query + admin service vẫn được test |
 | Ngoài plan | — | **20/11/2026:** trước D9.3, đã backup `posts`/`faqs` và áp migration D9.1 lên production, cập nhật metadata 3 bài viết. FAQ production vẫn 8 row chưa có `placement` — D9.5 sẽ seed/xử lý |
 | Ngoài plan | — | D9.3 đổi `RelatedToursCta` sang type `PostRelatedTour` (không cần `TourDetailData` đầy đủ); `TourDetailData[]` vẫn assignable nên trang listing cũ không phải sửa |
+| Ngoài plan | — | D9.4: `Cuisine` không có cột `status`, nên admin món ăn không có nháp/ẩn; xoá là mất khỏi public ngay. `TourCuisines` đổi sang prop `cuisines` lấy từ DB thay vì `tour.cuisines` |
+| Ngoài plan | — | D9.4: `/am-thuc/[slug]` vẫn dùng `tourDetails` fixture cho `RelatedTourCard` và khớp bữa ăn; chỉ dữ liệu món ăn chuyển sang DB. Phần lịch trình tour giữ lại đến D9.6 |
 | Ngoài plan | — | `Post` thiếu `topic`/`relatedTourCodes`/`checklist`/`isFeatured`; `Faq` thiếu `placement` → D9.1 thêm migration |
 | Ngoài plan | — | D8 render form đánh giá trong `components/lookup/order-lookup.tsx`, không phải `app/(site)/tra-cuu-don/page.tsx` (trang server không biết trạng thái đơn) |
 | Ngoài plan | — | **19/11/2026:** admin login production lỗi `P2022 admin_users.token_version does not exist` vì migration D7 chưa lên production. Đã backup `admin_users`/`orders` rồi `prisma migrate deploy`; `migrate status` up to date. Local dev chuyển sang `npm run dev:local`; `lib/prisma.ts` cảnh báo nếu dev trỏ production |

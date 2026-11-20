@@ -13,16 +13,17 @@ import { RelatedTourCard } from "@/components/cuisines/related-tour-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import {
-  getCuisineBySlug,
   getMealForCuisine,
-  getRelatedCuisines,
   getToursForCuisine,
 } from "@/lib/cuisines/detail";
-import {
-  cuisineListingData,
-} from "@/lib/cuisines/listing";
+import { getRelatedCuisines } from "@/lib/cuisines/listing";
 import { siteSettings } from "@/lib/fixtures/site";
+import { tourDetails } from "@/lib/fixtures/tour-details";
 import { cn } from "@/lib/utils";
+import {
+  getPublicCuisineBySlug,
+  listPublicCuisines,
+} from "@/server/content/public-cuisines";
 
 // Trang chi tiết đọc slug và được prerender cho toàn bộ danh sách hiện có.
 export const instant = false;
@@ -31,15 +32,16 @@ type CuisineDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export function generateStaticParams() {
-  return cuisineListingData.map((cuisine) => ({ slug: cuisine.slug }));
+export async function generateStaticParams() {
+  const cuisines = await listPublicCuisines();
+  return cuisines.map((cuisine) => ({ slug: cuisine.slug }));
 }
 
 export async function generateMetadata({
   params,
 }: CuisineDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const cuisine = getCuisineBySlug(slug);
+  const cuisine = await getPublicCuisineBySlug(slug);
 
   if (!cuisine) {
     return { title: "Không tìm thấy món ăn" };
@@ -55,13 +57,16 @@ export default async function CuisineDetailPage({
   params,
 }: CuisineDetailPageProps) {
   const { slug } = await params;
-  const cuisine = getCuisineBySlug(slug);
+  const [cuisine, all] = await Promise.all([
+    getPublicCuisineBySlug(slug),
+    listPublicCuisines(),
+  ]);
 
   if (!cuisine) notFound();
 
-  const tours = getToursForCuisine(cuisine);
-  const related = getRelatedCuisines(cuisine);
-  const total = cuisineListingData.length;
+  const tours = getToursForCuisine(cuisine, tourDetails);
+  const related = getRelatedCuisines(cuisine, all);
+  const total = all.length;
   const tourMeals = tours.map((tour) => ({
     tour,
     meal: getMealForCuisine(tour, cuisine),

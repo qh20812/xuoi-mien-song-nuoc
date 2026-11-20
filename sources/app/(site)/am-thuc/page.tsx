@@ -4,15 +4,15 @@ import { ChevronRight, Mail, Phone, Utensils } from "lucide-react";
 import { CuisineCatalog } from "@/components/cuisines/cuisine-catalog";
 import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { cuisineListingData } from "@/lib/cuisines/listing";
 import { siteSettings } from "@/lib/fixtures/site";
 import { tourDetails } from "@/lib/fixtures/tour-details";
 import { cn } from "@/lib/utils";
+import { listPublicCuisines } from "@/server/content/public-cuisines";
 
 export const metadata: Metadata = {
   title: "Ẩm thực miền Tây",
   description:
-    "Tuyển tập 8 món ăn Nam Bộ: lẩu mắm U Minh, cua Cà Mau, bánh xèo, bún nước lèo Sóc Trăng và các đặc sản miền Tây.",
+    "Tuyển tập món ăn Nam Bộ: lẩu mắm U Minh, cua Cà Mau, bánh xèo, bún nước lèo Sóc Trăng và các đặc sản miền Tây.",
 };
 
 const SEASONS = [
@@ -36,13 +36,15 @@ const SEASONS = [
   },
 ];
 
-export default function CuisineListingPage() {
-  const connectedCount = cuisineListingData.filter(
+export default async function CuisineListingPage() {
+  const cuisines = await listPublicCuisines();
+  const connectedCount = cuisines.filter(
     (cuisine) => cuisine.tourRefs.length > 0,
   ).length;
-  const unlinked = cuisineListingData.filter(
-    (cuisine) => cuisine.tourRefs.length === 0,
-  );
+  const unlinked = cuisines.filter((cuisine) => cuisine.tourRefs.length === 0);
+  const tourCount = new Set(
+    cuisines.flatMap((cuisine) => cuisine.tourRefs.map((tour) => tour.code)),
+  ).size;
 
   return (
     <>
@@ -69,19 +71,30 @@ export default function CuisineListingPage() {
           </div>
           <div className="lg:col-span-4">
             <p className="border-l-2 border-clay pl-5 text-sm leading-7 text-sage md:text-base">
-              Tuyển tập {cuisineListingData.length} món ăn bản địa dọc sông Cửu
-              Long, từ lẩu mắm U Minh và cua Năm Căn đến bún nước lèo Sóc Trăng.
-              Mỗi món gắn với một vùng nguyên liệu và mùa con nước.
+              {cuisines.length > 0
+                ? `Tuyển tập ${cuisines.length} món ăn bản địa dọc sông Cửu Long, từ lẩu mắm U Minh và cua Năm Căn đến bún nước lèo Sóc Trăng. Mỗi món gắn với một vùng nguyên liệu và mùa con nước.`
+                : "Danh sách món ăn đang được cập nhật. Vui lòng quay lại sau hoặc liên hệ để được tư vấn thực đơn."}
             </p>
-            <p className="mt-4 flex items-center gap-2 border-l-2 border-clay pl-5 text-xs text-sage">
-              <Utensils aria-hidden="true" className="size-3.5 text-clay" />
-              {connectedCount} món hiện có trong 3 tuyến tour
-            </p>
+            {cuisines.length > 0 ? (
+              <p className="mt-4 flex items-center gap-2 border-l-2 border-clay pl-5 text-xs text-sage">
+                <Utensils aria-hidden="true" className="size-3.5 text-clay" />
+                {connectedCount} món hiện có trong {tourCount} tuyến tour
+              </p>
+            ) : null}
           </div>
         </section>
 
         <div className="mt-8">
-          <CuisineCatalog cuisines={cuisineListingData} />
+          {cuisines.length > 0 ? (
+            <CuisineCatalog cuisines={cuisines} />
+          ) : (
+            <div className="rounded-[20px] border border-dashed border-line bg-surface-warm/35 p-10 text-center">
+              <Utensils aria-hidden="true" className="mx-auto size-6 text-sage" />
+              <p className="mt-3 text-sm text-sage">
+                Chưa có món ăn nào trong database.
+              </p>
+            </div>
+          )}
         </div>
 
         <section className="mt-16 rounded-[20px] border border-line bg-surface-warm/55 p-6 md:p-9">
@@ -122,8 +135,9 @@ export default function CuisineListingPage() {
               Muốn thưởng thức những món này trong chuyến đi?
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-sage md:text-base">
-              {connectedCount}/{cuisineListingData.length} món hiện có trong ba
-              hành trình.{" "}
+              {cuisines.length > 0
+                ? `${connectedCount}/${cuisines.length} món hiện có trong ${tourDetails.length} hành trình.`
+                : "Các hành trình hiện có vẫn sẵn sàng phục vụ; thực đơn sẽ được cập nhật khi dữ liệu món ăn đầy đủ."}{" "}
               {unlinked.length > 0
                 ? `${unlinked.map((item) => item.name).join(", ")} chưa nằm trong lịch trình hiện tại.`
                 : ""}
@@ -137,7 +151,7 @@ export default function CuisineListingPage() {
                   "w-full sm:w-auto",
                 )}
               >
-                Xem 3 hành trình
+                Xem {tourDetails.length} hành trình
               </Link>
               <Link
                 href="/tra-cuu-don"

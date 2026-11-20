@@ -10,6 +10,7 @@ import {
   POST_FALLBACK_IMAGE_SRC,
   normalizeFaqPlacement,
   normalizePostTopic,
+  toCuisineData,
   toCuisineListingData,
   toDestinationListingData,
   toPostRecord,
@@ -192,6 +193,33 @@ test("toCuisineListingData: null thành chuỗi rỗng, ảnh ngoài bị chặn
   assert.equal(data.provinceSlug, "");
   assert.equal(data.image, null);
   assert.equal(data.tourRefs.length, 1);
+});
+
+test("toCuisineData: rút gọn cho home/tour, chuỗi rỗng thành null", () => {
+  const empty = toCuisineData({
+    slug: "lau-mam",
+    name: "Lẩu mắm",
+    description: null,
+    whereToEat: null,
+    province: null,
+    imageUrl: null,
+    sortOrder: 2,
+  });
+  assert.equal(empty.description, "");
+  assert.equal(empty.whereToEat, null);
+  assert.equal(empty.province, null);
+
+  const filled = toCuisineData({
+    slug: "cua-ca-mau",
+    name: "Cua Cà Mau",
+    description: "Cua biển",
+    whereToEat: "Năm Căn",
+    province: "Cà Mau",
+    imageUrl: "/images/cua.webp",
+    sortOrder: 1,
+  });
+  assert.equal(filled.whereToEat, "Năm Căn");
+  assert.equal(filled.province, "Cà Mau");
 });
 
 test("normalizeFaqPlacement và toPublicFaqRecord", () => {

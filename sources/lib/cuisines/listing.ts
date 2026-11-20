@@ -1,24 +1,19 @@
 import type { CuisineListingData } from "@/lib/contracts/cuisine";
-import { cuisines } from "@/lib/fixtures/cuisines";
-import { tourDetails } from "@/lib/fixtures/tour-details";
-import { toSlug } from "@/lib/slug";
 
-export const cuisineListingData: CuisineListingData[] = cuisines.map(
-  (cuisine) => ({
-    ...cuisine,
-    provinceSlug: toSlug(cuisine.province),
-    tourRefs: tourDetails
-      .filter((tour) =>
-        tour.cuisines.some((item) => item.slug === cuisine.slug),
-      )
-      .map((tour) => ({
-        code: tour.code,
-        slug: tour.slug,
-        name: tour.name,
-      })),
-  }),
-);
+/** Món liên quan: cùng vùng trước, sau đó lấp bằng món vùng khác. */
+export function getRelatedCuisines(
+  cuisine: CuisineListingData,
+  all: CuisineListingData[],
+  limit = 3,
+): CuisineListingData[] {
+  const sameProvince = all.filter(
+    (item) =>
+      item.slug !== cuisine.slug && item.province === cuisine.province,
+  );
+  const others = all.filter(
+    (item) =>
+      item.slug !== cuisine.slug && item.province !== cuisine.province,
+  );
 
-export const cuisineListingBySlug = new Map(
-  cuisineListingData.map((cuisine) => [cuisine.slug, cuisine]),
-);
+  return [...sameProvince, ...others].slice(0, Math.max(0, Math.trunc(limit)));
+}

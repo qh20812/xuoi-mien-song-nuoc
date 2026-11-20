@@ -16,6 +16,7 @@ import {
   tourDetails,
 } from "@/lib/fixtures/tour-details";
 import { getBookableDepartures } from "@/server/catalog/get-bookable-departures";
+import { listCuisinesForTour } from "@/server/content/public-cuisines";
 import { listDestinationsForTour } from "@/server/content/public-destinations";
 import { getSiteSettings } from "@/server/settings/get-site-settings";
 
@@ -66,10 +67,11 @@ export default async function TourDetailPage({ params }: TourDetailPageProps) {
 
   // Lịch khởi hành thật từ MySQL — fixture chỉ dùng cho nội dung marketing.
   // Cấu hình đặt tour (hạn giữ chỗ, hạn huỷ, giới hạn khách) cũng lấy từ DB.
-  const [departures, settings, destinations] = await Promise.all([
+  const [departures, settings, destinations, cuisines] = await Promise.all([
     getBookableDepartures(tour.slug),
     getSiteSettings(),
     listDestinationsForTour(tour.slug),
+    listCuisinesForTour(tour.slug),
   ]);
 
   const tourWithDestinations = { ...tour, destinations };
@@ -84,7 +86,7 @@ export default async function TourDetailPage({ params }: TourDetailPageProps) {
           <TourOverview tour={tour} />
           <ItineraryTimeline tour={tour} />
           <TourDestinations tour={tourWithDestinations} />
-          <TourCuisines tour={tour} />
+          <TourCuisines cuisines={cuisines} />
           <IncludedExcluded tour={tour} />
           <PackingNotes tour={tour} />
           <BookingPolicy settings={settings} />

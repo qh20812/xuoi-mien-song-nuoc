@@ -13,6 +13,7 @@ import {
   Settings,
   Star,
   Users,
+  Utensils,
 } from "lucide-react";
 import type { Capability } from "@/server/auth/permissions";
 import { cn } from "@/lib/utils";
@@ -66,6 +67,13 @@ const ADMIN_LINKS: AdminLink[] = [
     href: "/admin/posts",
     label: "Bài viết",
     icon: Newspaper,
+    exact: false,
+    capability: "content:write",
+  },
+  {
+    href: "/admin/cuisines",
+    label: "Món ăn",
+    icon: Utensils,
     exact: false,
     capability: "content:write",
   },

@@ -23,6 +23,8 @@ const CURATED = {
   ],
 } as const;
 
+type RowVariant = "wide" | "compact";
+
 export function CuisineCatalog({ cuisines }: CuisineCatalogProps) {
   const [activeRegion, setActiveRegion] = useState("all");
 
@@ -60,7 +62,41 @@ export function CuisineCatalog({ cuisines }: CuisineCatalogProps) {
   );
 
   const isDefault = activeRegion === "all";
-  const lead = bySlug.get(CURATED.lead);
+
+  const curated = useMemo(() => {
+    if (cuisines.length === 0) {
+      return { lead: undefined, rows: [] as Array<{
+        cuisine: CuisineListingData;
+        span: string;
+        variant: RowVariant;
+      }> };
+    }
+
+    const lead = bySlug.get(CURATED.lead) ?? cuisines[0]!;
+    const used = new Set<string>([lead.slug, ...CURATED.rows.map((row) => row.slug)]);
+
+    const rows = CURATED.rows.flatMap((item) => {
+      const cuisine = bySlug.get(item.slug);
+      if (!cuisine || cuisine.slug === lead.slug) return [];
+      return [{ cuisine, span: item.span, variant: item.variant as RowVariant }];
+    });
+
+    // Món admin thêm mới vẫn phải xuất hiện, xếp sau các món curated.
+    const extras = cuisines
+      .filter((cuisine) => !used.has(cuisine.slug))
+      .map((cuisine, index) => ({
+        cuisine,
+        span:
+          index % 3 === 2
+            ? "lg:col-span-12"
+            : index % 2 === 0
+              ? "lg:col-span-7"
+              : "lg:col-span-5",
+        variant: (index % 3 === 2 ? "wide" : "compact") as RowVariant,
+      }));
+
+    return { lead, rows: [...rows, ...extras] };
+  }, [bySlug, cuisines]);
 
   function resetFilter() {
     setActiveRegion("all");
@@ -135,23 +171,24 @@ export function CuisineCatalog({ cuisines }: CuisineCatalogProps) {
         </section>
       ) : null}
 
-      {isDefault && lead ? (
+      {isDefault && curated.lead ? (
         <div className="flex flex-col gap-8">
-          <CuisineCard cuisine={lead} total={cuisines.length} variant="lead" />
+          <CuisineCard
+            cuisine={curated.lead}
+            total={cuisines.length}
+            variant="lead"
+          />
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-            {CURATED.rows.map((item) => {
-              const cuisine = bySlug.get(item.slug);
-              return cuisine ? (
-                <div key={item.slug} className={item.span}>
-                  <CuisineCard
-                    cuisine={cuisine}
-                    total={cuisines.length}
-                    variant={item.variant}
-                  />
-                </div>
-              ) : null;
-            })}
+            {curated.rows.map((item) => (
+              <div key={item.cuisine.slug} className={item.span}>
+                <CuisineCard
+                  cuisine={item.cuisine}
+                  total={cuisines.length}
+                  variant={item.variant}
+                />
+              </div>
+            ))}
           </div>
         </div>
       ) : null}

@@ -14,6 +14,7 @@ import type {
   DestinationRecord,
   DestinationTourRef,
 } from "@/lib/contracts/destination";
+import type { CuisineData } from "@/lib/contracts/home";
 import type { FaqPlacement, PublicFaqRecord } from "@/lib/contracts/faq";
 import type { PostRecord, PostTopic } from "@/lib/contracts/post";
 import {
@@ -213,6 +214,19 @@ export function toCuisineListingData(
     ...record,
     provinceSlug: toSlug(record.province),
     tourRefs,
+  };
+}
+
+/** Dạng rút gọn cho section trang chủ và tour detail. */
+export function toCuisineData(row: CuisineRow): CuisineData {
+  const record = toCuisineRecord(row);
+
+  return {
+    slug: record.slug,
+    name: record.name,
+    description: record.description,
+    whereToEat: record.whereToEat || null,
+    province: record.province || null,
   };
 }
 
