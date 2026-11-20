@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { RotateCcw, SearchX } from "lucide-react";
 import { PostCard } from "@/components/posts/post-card";
 import type { PostListingData, PostTopic } from "@/lib/contracts/post";
-import { POST_TOPICS, featuredPostSlug } from "@/lib/posts/listing";
+import { POST_TOPICS } from "@/lib/posts/listing";
 import { cn } from "@/lib/utils";
 
 type PostCatalogProps = {
@@ -34,12 +34,10 @@ export function PostCatalog({ posts }: PostCatalogProps) {
     [activeTopic, posts],
   );
 
-  const bySlug = useMemo(
-    () => new Map(posts.map((post) => [post.slug, post])),
-    [posts],
-  );
   const lead =
-    bySlug.get(featuredPostSlug) ?? visiblePosts[0] ?? null;
+    visiblePosts.find((post) => post.isFeatured === true) ??
+    visiblePosts[0] ??
+    null;
   const secondary =
     activeTopic === "all"
       ? posts.filter((post) => post.slug !== lead?.slug)

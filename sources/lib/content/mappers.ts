@@ -186,6 +186,7 @@ export function toPostRecord(row: PostRow): PostRecord {
       toIsoString(row.createdAt) ??
       new Date(0).toISOString(),
     relatedTourCodes: toStringArray(row.relatedTourCodes),
+    isFeatured: row.isFeatured,
     ...(checklist.length > 0 ? { checklist } : {}),
   };
 }

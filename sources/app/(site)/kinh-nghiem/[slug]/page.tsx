@@ -18,30 +18,31 @@ import { ShareButton } from "@/components/posts/share-button";
 import { Container } from "@/components/ui/container";
 import { siteSettings } from "@/lib/fixtures/site";
 import { formatDateVN } from "@/lib/format";
+import { getPostArticle } from "@/lib/posts/detail";
 import {
-  getPostArticle,
-  getPostBySlug,
-  getRelatedPosts,
-  getToursForPost,
-} from "@/lib/posts/detail";
-import { postListingData } from "@/lib/posts/listing";
+  getPublicPostBySlug,
+  listPublicPosts,
+  listRelatedPosts,
+  listToursForPost,
+} from "@/server/content/public-posts";
 
-// Trang chi tiết đọc slug và được prerender cho ba bài viết hiện có.
+// Trang chi tiết đọc slug và dữ liệu DB; render theo từng bài viết.
 export const instant = false;
 
 type ExperienceDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export function generateStaticParams() {
-  return postListingData.map((post) => ({ slug: post.slug }));
+export async function generateStaticParams() {
+  const posts = await listPublicPosts();
+  return posts.map((post) => ({ slug: post.slug }));
 }
 
 export async function generateMetadata({
   params,
 }: ExperienceDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const post = await getPublicPostBySlug(slug);
 
   if (!post) {
     return { title: "Không tìm thấy bài viết" };
@@ -64,13 +65,15 @@ export default async function ExperienceDetailPage({
   params,
 }: ExperienceDetailPageProps) {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const post = await getPublicPostBySlug(slug);
 
   if (!post) notFound();
 
   const article = getPostArticle(post);
-  const tours = getToursForPost(post);
-  const relatedPosts = getRelatedPosts(post);
+  const [tours, relatedPosts] = await Promise.all([
+    listToursForPost(post.relatedTourCodes),
+    listRelatedPosts(post.slug, 2),
+  ]);
 
   return (
     <Container className="pt-6 pb-16 md:pb-24">

@@ -1,11 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
-import type { TourDetailData } from "@/lib/contracts/tour";
+import type { PostRelatedTour } from "@/lib/contracts/post";
 import { formatLongDateVN, formatVndDisplay } from "@/lib/format";
 
 type RelatedToursCtaProps = {
-  tours: TourDetailData[];
+  tours: PostRelatedTour[];
 };
 
 export function RelatedToursCta({ tours }: RelatedToursCtaProps) {

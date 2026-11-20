@@ -14,6 +14,19 @@ export type PostRecord = {
   publishedAt: string;
   relatedTourCodes: string[];
   checklist?: string[];
+  isFeatured?: boolean;
+};
+
+export type PostRelatedTour = {
+  code: string;
+  slug: string;
+  name: string;
+  summary: string;
+  durationDays: number;
+  durationNights: number;
+  priceAdult: number;
+  coverImage: ImageAsset;
+  departures: Array<{ date: string; priceAdult: number }>;
 };
 
 export type PostListingData = PostRecord & {

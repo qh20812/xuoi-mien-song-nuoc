@@ -642,7 +642,7 @@ B0 ──▶ B1 ──▶ B2 ──▶ B3
 - [ ] **D9** Public đọc DB + CRUD điểm đến/bài viết/món ăn/FAQ
   - [x] **D9.1** Schema/migration/seed/mapper thuần (`Post.topic`, `relatedTourCodes`, `checklist`, `isFeatured`; `Faq.placement`)
   - [x] **D9.2** Điểm đến — loader + `/diem-den/[slug]` + admin CRUD + cache
-  - [ ] **D9.3** Bài viết — loader + admin CRUD + featured theo DB
+  - [x] **D9.3** Bài viết — loader + admin CRUD + featured theo DB
   - [ ] **D9.4** Món ăn — loader + admin CRUD + home/tour detail
   - [ ] **D9.5** FAQ — loader + admin CRUD + home/liên hệ theo `placement`
   - [ ] **D9.6** Xoá fixture domain + docs + ratchet coverage
@@ -1466,8 +1466,9 @@ không ai thấy** — đúng như đã cảnh báo khi chốt phạm vi P4.
 > **Đã làm & kiểm chứng**
 >
 > - Migration `20261120100000_content_metadata`: thêm `posts.topic`, `posts.related_tour_codes`,
->   `posts.checklist`, `posts.is_featured`, `faqs.placement`. Đã `migrate deploy` trên **dev**
->   và **test** (chưa đụng production — để D9.6/deploy).
+>   `posts.checklist`, `posts.is_featured`, `faqs.placement`. Đã `migrate deploy` trên **dev**,
+>   **test** và **production** (20/11/2026, trước D9.3 vì public posts cần cột mới; đã backup
+>   `posts`/`faqs`/`_prisma_migrations`, cập nhật metadata 3 bài viết production).
 > - Seed: 3 bài viết có `topic`/`relatedTourCodes`/`checklist`/`isFeatured`; 12 FAQ
 >   (4 `placement = contact`, 4 `placement = home`, 4 chủ đề còn lại `null`).
 > - `lib/content/mappers.ts` — mapper thuần cho Destination/Post/Cuisine/FAQ:
@@ -1534,6 +1535,34 @@ không ai thấy** — đúng như đã cảnh báo khi chốt phạm vi P4.
 | **Admin** | Tạo/sửa/xoá; slug bất biến; `category = kinh-nghiem` cố định; tags nhập phẩy; related codes nhập phẩy; checklist mỗi dòng một mục; status draft/published; `publishedAt`; SEO; `isFeatured`; ảnh bìa qua `<datalist>` media; audit `post.create\|update\|delete`; `updateTag("content:posts")` |
 | **Test** | Loader (draft/ẩn, order, tags/checklist, related tours) + admin service + mapper |
 | **Done khi** | Sửa tiêu đề/nội dung trong admin → `/kinh-nghiem` + detail đổi ngay; draft không hiện; featured đúng bài được tick |
+
+> **Đã làm & kiểm chứng**
+>
+> - **Loader:** `server/content/posts-query.ts` (query thô) + `server/content/public-posts.ts`
+>   (`"use cache"`, `cacheLife("max")`, `cacheTag("content:posts")`). Chỉ lấy
+>   `status = published`, `publishedAt <= now`, order `publishedAt desc/createdAt desc`.
+>   `queryToursForPost` lọc tour `published`, giữ thứ tự mã; type CTA thu gọn
+>   (`PostRelatedTour`) để không phải giả lập `TourDetailData`.
+> - **Public:** `/kinh-nghiem` và `/kinh-nghiem/[slug]` async loader; `generateStaticParams`
+>   async; bài nổi bật chọn theo `isFeatured`; empty state khi DB rỗng.
+> - **Refactor:** `lib/posts/listing.ts` chỉ còn `POST_TOPICS` + `toPostListingData`;
+>   `lib/posts/detail.ts` chỉ còn parse article/related-posts thuần. `PostRecord` thêm
+>   `isFeatured?`, `PostRelatedTour`.
+> - **Admin:** `server/content/admin-posts.ts` — list/create/update/delete, slug bất biến,
+>   validate slug/title/topic/status/ngày/ảnh/tags/related/checklist/SEO, audit
+>   `post.create|update|delete`. UI `/admin/posts` + `/admin/posts/[id]`, form đầy đủ,
+>   datalist media + mã tour; action gọi `updateTag("content:posts")`.
+> - **Tests:** `scripts/tests/content-posts.test.mts` (9 case): published/future/draft/order,
+>   related posts, tour published, CRUD + audit + slug trùng + validation + 404. Tổng
+>   `npm test` **201/201**.
+> - **Coverage:** **85.57 / 88.27 / 93.69** (gate 80/88/92).
+> - **Live verify (dev:local):** `/kinh-nghiem`, `/kinh-nghiem/mua-nao-di-u-minh-ha-dep-nhat`,
+>   `/admin/posts`, `/admin/posts/1` đều 200; log không có Instant/Blocking/unstable.
+> - **Build:** `/kinh-nghiem` là `○`; 3 slug seed của `/kinh-nghiem/[slug]` là `○`, slug mới
+>   rơi vào `◐`.
+> - **Production:** đã backup `posts`/`faqs`/`_prisma_migrations` vào
+>   `%TEMP%\xmsn-content-backup-*`, áp migration D9.1 và cập nhật metadata 3 bài viết
+>   (topic/related/checklist/isFeatured). FAQ production vẫn để D9.5 xử lý.
 
 #### D9.4 · Món ăn (vertical slice)
 
@@ -1699,6 +1728,8 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | §D9 (bảng cũ) | "tách 5 bước" · D9.1 fallback fixture · D9.5 xoá `lib/fixtures/*` trừ `site.ts` | Đổi thành **6 slice** D9.1–D9.6; fallback chỉ tạm đến D9.6 rồi dùng empty state; giữ `site.ts`, `home.ts` (tours/journey), `tour-details.ts` (lịch trình) |
 | Ngoài plan | — | `/diem-den/[slug]` chưa từng tồn tại dù mọi card link tới → D9.2 thêm mới, không phải sửa |
 | Ngoài plan | — | D9.2 loại `server/content/public-*.ts` khỏi coverage (wrapper `"use cache"`/`cacheLife` chỉ chạy trong Next runtime); query + admin service vẫn được test |
+| Ngoài plan | — | **20/11/2026:** trước D9.3, đã backup `posts`/`faqs` và áp migration D9.1 lên production, cập nhật metadata 3 bài viết. FAQ production vẫn 8 row chưa có `placement` — D9.5 sẽ seed/xử lý |
+| Ngoài plan | — | D9.3 đổi `RelatedToursCta` sang type `PostRelatedTour` (không cần `TourDetailData` đầy đủ); `TourDetailData[]` vẫn assignable nên trang listing cũ không phải sửa |
 | Ngoài plan | — | `Post` thiếu `topic`/`relatedTourCodes`/`checklist`/`isFeatured`; `Faq` thiếu `placement` → D9.1 thêm migration |
 | Ngoài plan | — | D8 render form đánh giá trong `components/lookup/order-lookup.tsx`, không phải `app/(site)/tra-cuu-don/page.tsx` (trang server không biết trạng thái đơn) |
 | Ngoài plan | — | **19/11/2026:** admin login production lỗi `P2022 admin_users.token_version does not exist` vì migration D7 chưa lên production. Đã backup `admin_users`/`orders` rồi `prisma migrate deploy`; `migrate status` up to date. Local dev chuyển sang `npm run dev:local`; `lib/prisma.ts` cảnh báo nếu dev trỏ production |

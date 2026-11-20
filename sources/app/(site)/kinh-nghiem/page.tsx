@@ -7,8 +7,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { siteSettings } from "@/lib/fixtures/site";
 import { tourDetails } from "@/lib/fixtures/tour-details";
-import { POST_TOPICS, postListingData } from "@/lib/posts/listing";
+import { POST_TOPICS } from "@/lib/posts/listing";
 import { cn } from "@/lib/utils";
+import { listPublicPosts } from "@/server/content/public-posts";
 
 export const metadata: Metadata = {
   title: "Kinh nghiệm du lịch miền Tây",
@@ -16,7 +17,9 @@ export const metadata: Metadata = {
     "Cẩm nang thực tế cho chuyến đi miền Tây: mùa nào đi U Minh Hạ, hành lý vào rừng tràm và kinh nghiệm check-in Đất Mũi trong ngày.",
 };
 
-export default function ExperienceListingPage() {
+export default async function ExperienceListingPage() {
+  const posts = await listPublicPosts();
+
   return (
     <>
       <Container className="pt-10 pb-16 md:pt-14 md:pb-24">
@@ -47,13 +50,24 @@ export default function ExperienceListingPage() {
             </p>
             <p className="mt-4 flex items-center gap-2 border-l-2 border-clay pl-5 text-xs text-sage">
               <Clock3 aria-hidden="true" className="size-3.5 text-clay" />
-              {postListingData.length} bài viết · {POST_TOPICS.length} chủ đề
+              {posts.length} bài viết · {POST_TOPICS.length} chủ đề
             </p>
           </div>
         </section>
 
         <div className="mt-8">
-          <PostCatalog posts={postListingData} />
+          {posts.length === 0 ? (
+          <div className="mx-auto flex max-w-xl flex-col items-center rounded-[20px] border border-dashed border-line bg-surface-warm/35 p-10 text-center">
+            <h2 className="font-display text-xl font-semibold text-ink">
+              Chưa có bài viết nào
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-sage">
+              Nội dung sẽ xuất hiện khi được thêm trong trang quản trị.
+            </p>
+          </div>
+        ) : (
+          <PostCatalog posts={posts} />
+        )}
         </div>
       </Container>
 
