@@ -2,29 +2,49 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { MAX_UPLOAD_LABEL } from "@/lib/media/limits";
+import {
+  ImageUploadError,
+  prepareImageForUpload,
+} from "@/lib/media/resize-for-upload";
 
 const fieldClass =
   "h-10 w-full rounded-[10px] border border-line bg-surface px-3 text-[13px] text-ink focus-visible:border-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none";
 const labelClass = "text-[12px] font-semibold text-sage";
 
+type Stage = "idle" | "compressing" | "uploading";
+
 export function MediaUploadForm() {
   const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
+
+  const pending = stage !== "idle";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
 
-    setPending(true);
+    setStage("compressing");
     setError(null);
     setOk(false);
 
     try {
+      const data = new FormData(form);
+      const picker = form.elements.namedItem("file");
+      const file = picker instanceof HTMLInputElement ? picker.files?.[0] : undefined;
+
+      if (file) {
+        const prepared = await prepareImageForUpload(file);
+        if (prepared !== file) data.set("file", prepared);
+      }
+
+      setStage("uploading");
+
       const response = await fetch("/api/admin/media/upload", {
         method: "POST",
-        body: new FormData(form),
+        body: data,
       });
       const payload = (await response.json().catch(() => null)) as
         | { ok?: boolean; error?: { message?: string } }
@@ -38,10 +58,14 @@ export function MediaUploadForm() {
       form.reset();
       setOk(true);
       router.refresh();
-    } catch {
-      setError("Không kết nối được máy chủ, vui lòng thử lại");
+    } catch (submitError) {
+      setError(
+        submitError instanceof ImageUploadError
+          ? submitError.message
+          : "Không kết nối được máy chủ, vui lòng thử lại",
+      );
     } finally {
-      setPending(false);
+      setStage("idle");
     }
   }
 
@@ -79,8 +103,8 @@ export function MediaUploadForm() {
             className="block w-full cursor-pointer rounded-[10px] border border-line bg-surface px-3 py-2 text-[13px] text-ink file:mr-3 file:rounded-[8px] file:border-0 file:bg-surface-warm file:px-3 file:py-1.5 file:text-[12px] file:font-semibold file:text-ink focus-visible:border-clay focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none"
           />
           <p className="text-[12px] text-sage">
-            JPEG, PNG, WebP hoặc AVIF · tối đa 8 MB · tự resize cạnh dài ≤ 1920px và
-            chuyển WebP.
+            JPEG, PNG, WebP hoặc AVIF · tối đa {MAX_UPLOAD_LABEL} · ảnh lớn được tự nén
+            trước khi gửi, sau đó resize cạnh dài ≤ 1920px và chuyển WebP.
           </p>
         </div>
 
@@ -122,7 +146,11 @@ export function MediaUploadForm() {
           disabled={pending}
           className="inline-flex h-10 items-center justify-center rounded-[10px] bg-clay px-4 text-[13px] font-semibold text-contrast-on-accent transition-colors hover:bg-clay-hover focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:outline-none disabled:opacity-60"
         >
-          {pending ? "Đang tải ảnh…" : "Tải ảnh lên"}
+          {stage === "compressing"
+            ? "Đang nén ảnh…"
+            : stage === "uploading"
+              ? "Đang tải ảnh…"
+              : "Tải ảnh lên"}
         </button>
       </div>
     </form>

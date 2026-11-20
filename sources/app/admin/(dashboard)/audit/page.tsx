@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AccessDenied } from "@/components/admin/access-denied";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { AuditMetaDetails } from "@/components/admin/audit-meta";
 import {
   AUDIT_ENTITY_OPTIONS,
   auditActionLabel,
@@ -252,7 +253,11 @@ export default async function AdminAuditPage({
                       <EntityCell row={row} />
                     </td>
                     <td className="px-4 py-3">
-                      <MetaCell meta={row.meta} />
+                      <AuditMetaDetails
+                        entity={row.entity}
+                        action={row.action}
+                        meta={row.meta}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -291,7 +296,11 @@ export default async function AdminAuditPage({
                   </div>
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <span className="text-sage">Chi tiết</span>
-                    <MetaCell meta={row.meta} />
+                    <AuditMetaDetails
+                      entity={row.entity}
+                      action={row.action}
+                      meta={row.meta}
+                    />
                   </div>
                 </div>
               </li>
@@ -341,26 +350,6 @@ function EntityCell({ row }: { row: AdminAuditRow }) {
         <span className="font-mono text-[11px] text-sage">#{row.entityId}</span>
       ) : null}
     </span>
-  );
-}
-
-function MetaCell({ meta }: { meta: unknown }) {
-  const empty =
-    meta === null ||
-    meta === undefined ||
-    (typeof meta === "object" && !Array.isArray(meta) && Object.keys(meta).length === 0);
-
-  if (empty) return <span className="text-sage">—</span>;
-
-  return (
-    <details className="text-[12px]">
-      <summary className="cursor-pointer font-medium text-clay underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-clay/40 focus-visible:outline-none">
-        Xem
-      </summary>
-      <pre className="mt-2 max-h-48 max-w-[420px] overflow-auto rounded-[8px] bg-surface-warm p-2 text-[11px] leading-5 break-all whitespace-pre-wrap text-ink">
-        {JSON.stringify(meta, null, 2)}
-      </pre>
-    </details>
   );
 }
 

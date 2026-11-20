@@ -7,13 +7,19 @@
  */
 import sharp from "sharp";
 import prisma from "@/lib/prisma";
+import {
+  MAX_UPLOAD_BYTES,
+  MAX_UPLOAD_LABEL,
+  UPLOAD_MAX_EDGE,
+  UPLOAD_WEBP_QUALITY,
+} from "@/lib/media/limits";
 import { AppError, isAppError } from "@/server/errors";
 import {
   cloudinaryStorage,
   type MediaStorage,
 } from "@/server/media/cloudinary";
 
-export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+export { MAX_UPLOAD_BYTES };
 export const ALLOWED_IMAGE_MIME_TYPES = [
   "image/jpeg",
   "image/png",
@@ -22,8 +28,6 @@ export const ALLOWED_IMAGE_MIME_TYPES = [
 ] as const;
 
 const MAX_INPUT_PIXELS = 40_000_000;
-const MAX_EDGE = 1920;
-const WEBP_QUALITY = 78;
 const FOLDER = "xmsn/media";
 
 export type UploadMediaInput = {
@@ -98,7 +102,7 @@ export async function uploadMedia(
   }
 
   if (input.size > MAX_UPLOAD_BYTES) {
-    throw new AppError("MEDIA_TOO_LARGE", "Ảnh tối đa 8 MB", 400);
+    throw new AppError("MEDIA_TOO_LARGE", `Ảnh tối đa ${MAX_UPLOAD_LABEL}`, 400);
   }
 
   let processed: { data: Buffer; width: number; height: number };
@@ -108,12 +112,12 @@ export async function uploadMedia(
     })
       .rotate()
       .resize({
-        width: MAX_EDGE,
-        height: MAX_EDGE,
+        width: UPLOAD_MAX_EDGE,
+        height: UPLOAD_MAX_EDGE,
         fit: "inside",
         withoutEnlargement: true,
       })
-      .webp({ quality: WEBP_QUALITY })
+      .webp({ quality: UPLOAD_WEBP_QUALITY })
       .toBuffer({ resolveWithObject: true });
 
     processed = {

@@ -338,7 +338,7 @@ npx tsc --noEmit && npm run lint && npm run build
 - Nhật ký `/admin/audit`: chỉ `owner` có `audit:read`; read-only, không có form sửa/xoá.
   Lọc entity exact + action prefix + admin + khoảng ngày VN (`to` inclusive); `meta` xem trong
   `<details>`; bảng ở `xl+`, card ở dưới; phân trang 50 giữ filter.
-- Media `/admin/media`: upload Cloudinary (JPEG/PNG/WebP/AVIF ≤ 8 MB, resize ≤1920, WebP q78).
+- Media `/admin/media`: upload Cloudinary (JPEG/PNG/WebP/AVIF ≤ 4 MB sau khi client nén, resize ≤1920, WebP q78).
   Ảnh có `publicId` không sửa được URL/loại; xoá ảnh đang dùng làm ảnh bìa trả 409
   `MEDIA_IN_USE`. URL ảnh nội dung chỉ nhận `/images/…` hoặc `res.cloudinary.com/.../image/upload/...`.
 

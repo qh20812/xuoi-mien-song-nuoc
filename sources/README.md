@@ -39,7 +39,9 @@ khu quản trị tối giản để xử lý đơn.
 - Tự đổi mật khẩu tại `/admin/account` (mọi vai trò). Đổi xong `tokenVersion` tăng,
   cookie bị xoá và phiên cũ mất hiệu lực — phải đăng nhập lại bằng mật khẩu mới.
 - Nhật ký thao tác tại `/admin/audit` (chỉ chủ sở hữu): lọc theo đối tượng, hành động,
-  người thực hiện và khoảng ngày; chỉ đọc, có phân trang.
+  người thực hiện và khoảng ngày; chỉ đọc, có phân trang. Cột “Chi tiết” hiển thị nhãn
+  tiếng Việt, ảnh thu nhỏ, chuyển trạng thái `cũ → mới` và diff cấu hình; JSON gốc vẫn
+  mở được ở cuối mỗi mục.
 - Dashboard đếm đơn theo trạng thái, danh sách đơn (lọc trạng thái / tìm mã, SĐT, tên).
 - Chi tiết đơn: khách, tour, hành khách, chi phí, lịch sử trạng thái.
 - Thao tác: `pending` (đã liên hệ) → `confirm` (xác nhận, bỏ hạn giữ chỗ) →
@@ -98,8 +100,8 @@ prisma/
   seed.mjs               seed dữ liệu thật (idempotent)
 scripts/
   with-db.mjs            chạy lệnh với DB dev / test / prod
-  expire-holds.mjs       job tự huỷ đơn giữ chỗ quá hạn
-  reconcile-seats.mjs    job đối soát seats_taken
+  expire-holds.mts       job tự huỷ đơn giữ chỗ quá hạn (CLI)
+  reconcile-seats.mts    job đối soát seats_taken (CLI)
   tests/                 integration tests
 ```
 
@@ -287,7 +289,7 @@ Description=Xuoi Mien Song Nuoc - expire booking holds
 Type=oneshot
 WorkingDirectory=/srv/xmsn
 EnvironmentFile=/srv/xmsn/.env
-ExecStart=/usr/bin/node scripts/expire-holds.mjs
+ExecStart=/usr/bin/node --import tsx scripts/expire-holds.mts
 ```
 
 ```ini
@@ -312,11 +314,11 @@ systemctl enable --now xmsn-expire.timer
 Đối soát chỗ nên chạy 1 lần/ngày (báo cáo) và bật `--fix` khi cần:
 
 ```bash
-node scripts/reconcile-seats.mjs
-node scripts/reconcile-seats.mjs --fix
+node --import tsx scripts/reconcile-seats.mts
+node --import tsx scripts/reconcile-seats.mts --fix
 ```
 
-Với Docker: `docker compose exec -T app node scripts/expire-holds.mjs`.
+Với Docker: `docker compose exec -T app node --import tsx scripts/expire-holds.mts`.
 
 ## Triển khai (VPS / Docker)
 
@@ -339,7 +341,7 @@ docker compose run --rm migrate
 docker compose up -d app
 
 # 4. Job định kỳ (systemd timer gọi)
-docker compose exec -T app node scripts/expire-holds.mjs
+docker compose exec -T app node --import tsx scripts/expire-holds.mts
 ```
 
 Lưu ý production:

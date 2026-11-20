@@ -1,5 +1,5 @@
 /**
- * Test tích hợp cho scripts/expire-holds.mjs và scripts/reconcile-seats.mjs.
+ * Test tích hợp cho CLI scripts/expire-holds.mts và scripts/reconcile-seats.mts.
  * Chạy trên database test:
  *
  *   node --test scripts/tests/jobs.test.mjs
@@ -48,10 +48,14 @@ async function createOrder({ adults = 1, children = 0, infants = 0, status = "ne
 }
 
 function runScript(name, args = []) {
-  const result = spawnSync(process.execPath, [`scripts/${name}`, ...args], {
-    encoding: "utf8",
-    env: { ...process.env, DATABASE_URL: process.env.TEST_DATABASE_URL },
-  });
+  const result = spawnSync(
+    process.execPath,
+    ["--import", "tsx", `scripts/${name}`, ...args],
+    {
+      encoding: "utf8",
+      env: { ...process.env, DATABASE_URL: process.env.TEST_DATABASE_URL },
+    },
+  );
   return {
     status: result.status,
     output: `${result.stdout ?? ""}${result.stderr ?? ""}`,
@@ -104,7 +108,7 @@ test("expire-holds chỉ xử lý đơn new quá hạn, nhả chỗ đúng và i
   // 4 + 1 + 3 khách đang chiếm chỗ
   await prisma.tourDeparture.update({ where: { id: departure.id }, data: { seatsTaken: 8 } });
 
-  const first = runScript("expire-holds.mjs");
+  const first = runScript("expire-holds.mts");
   assert.equal(first.status, 0, first.output);
   assert.match(first.output, /hết hạn=1/);
 
@@ -123,7 +127,7 @@ test("expire-holds chỉ xử lý đơn new quá hạn, nhả chỗ đúng và i
   });
   assert.ok(history, "phải ghi lịch sử hết hạn");
 
-  const second = runScript("expire-holds.mjs");
+  const second = runScript("expire-holds.mts");
   assert.equal(second.status, 0, second.output);
   assert.match(second.output, /hết hạn=0/);
   assert.equal((await currentDeparture()).seatsTaken, 4, "không được nhả chỗ lần hai");
@@ -132,17 +136,17 @@ test("expire-holds chỉ xử lý đơn new quá hạn, nhả chỗ đúng và i
 test("reconcile-seats phát hiện lệch, --fix sửa đúng", async () => {
   await prisma.tourDeparture.update({ where: { id: departure.id }, data: { seatsTaken: 9 } });
 
-  const report = runScript("reconcile-seats.mjs");
+  const report = runScript("reconcile-seats.mts");
   assert.equal(report.status, 1);
   assert.match(report.output, /lệch=1/);
   assert.equal((await currentDeparture()).seatsTaken, 9, "không sửa khi không có --fix");
 
-  const fixed = runScript("reconcile-seats.mjs", ["--fix"]);
+  const fixed = runScript("reconcile-seats.mts", ["--fix"]);
   assert.equal(fixed.status, 0, fixed.output);
   assert.match(fixed.output, /đã sửa=1/);
   assert.equal((await currentDeparture()).seatsTaken, 4);
 
-  const again = runScript("reconcile-seats.mjs");
+  const again = runScript("reconcile-seats.mts");
   assert.equal(again.status, 0, again.output);
   assert.match(again.output, /lệch=0/);
 });

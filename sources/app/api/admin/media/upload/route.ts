@@ -1,4 +1,5 @@
 import { requireCapabilityApi } from "@/lib/auth/session";
+import { MAX_REQUEST_BODY_BYTES, MAX_UPLOAD_LABEL } from "@/lib/media/limits";
 import { AppError } from "@/server/errors";
 import { apiError, handleApiError, jsonResponse } from "@/lib/http";
 import { rateLimit } from "@/lib/rate-limit";
@@ -6,7 +7,12 @@ import { uploadMedia } from "@/server/media/upload-media";
 
 const WINDOW_MS = 10 * 60 * 1000;
 const LIMIT = 10;
-const MAX_BODY_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Vercel cắt request body ở 4.5 MB trước khi vào route, nên `MAX_BODY_BYTES`
+ * chỉ còn là lớp chặn sớm (kèm thông báo thân thiện) cho môi trường chạy Node.
+ */
+export const maxDuration = 60;
 
 function text(value: FormDataEntryValue | null): string | null {
   return typeof value === "string" ? value : null;
@@ -37,8 +43,8 @@ export async function POST(request: Request) {
     }
 
     const contentLength = Number(request.headers.get("content-length") ?? 0);
-    if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
-      throw new AppError("MEDIA_TOO_LARGE", "Ảnh tối đa 8 MB", 413);
+    if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BODY_BYTES) {
+      throw new AppError("MEDIA_TOO_LARGE", `Ảnh tối đa ${MAX_UPLOAD_LABEL}`, 413);
     }
 
     let form: FormData;
