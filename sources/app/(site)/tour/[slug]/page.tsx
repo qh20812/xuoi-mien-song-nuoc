@@ -74,8 +74,6 @@ export default async function TourDetailPage({ params }: TourDetailPageProps) {
     listCuisinesForTour(tour.slug),
   ]);
 
-  const tourWithDestinations = { ...tour, destinations };
-
   return (
     <Container className="pb-16 md:pb-24">
       <TourHeading tour={tour} />
@@ -85,7 +83,7 @@ export default async function TourDetailPage({ params }: TourDetailPageProps) {
         <div className="flex flex-col gap-12 md:gap-16">
           <TourOverview tour={tour} />
           <ItineraryTimeline tour={tour} />
-          <TourDestinations tour={tourWithDestinations} />
+          <TourDestinations destinations={destinations} />
           <TourCuisines cuisines={cuisines} />
           <IncludedExcluded tour={tour} />
           <PackingNotes tour={tour} />

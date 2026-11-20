@@ -639,13 +639,13 @@ B0 ──▶ B1 ──▶ B2 ──▶ B3
 - [x] **D6** Phân quyền theo vai trò (owner / admin / editor)
 - [x] **D7** Ghi chú nội bộ + phân công đơn (+ `tokenVersion`)
 - [x] **D8** Kênh khách gửi đánh giá
-- [ ] **D9** Public đọc DB + CRUD điểm đến/bài viết/món ăn/FAQ
+- [x] **D9** Public đọc DB + CRUD điểm đến/bài viết/món ăn/FAQ
   - [x] **D9.1** Schema/migration/seed/mapper thuần (`Post.topic`, `relatedTourCodes`, `checklist`, `isFeatured`; `Faq.placement`)
   - [x] **D9.2** Điểm đến — loader + `/diem-den/[slug]` + admin CRUD + cache
   - [x] **D9.3** Bài viết — loader + admin CRUD + featured theo DB
   - [x] **D9.4** Món ăn — loader + admin CRUD + home/tour detail
   - [x] **D9.5** FAQ — loader + admin CRUD + home/liên hệ theo `placement`
-  - [ ] **D9.6** Xoá fixture domain + docs + ratchet coverage
+  - [x] **D9.6** Xoá fixture domain + docs + ratchet coverage
 - [ ] **D10** Upload ảnh, màn audit log, badge tin mới
 
 ### Điều kiện chặn
@@ -1417,7 +1417,7 @@ chạy một đợt migrate duy nhất.
 
 ---
 
-### D9 · Public đọc DB + CRUD nội dung — **TODO (lớn, triển khai vertical slice)**
+### D9 · Public đọc DB + CRUD nội dung — **đã xong**
 
 **Vấn đề gốc:** `app/(site)/**` đọc `lib/fixtures/*`. Nếu chỉ thêm CRUD vào DB thì **sửa
 không ai thấy** — đúng như đã cảnh báo khi chốt phạm vi P4.
@@ -1648,6 +1648,37 @@ không ai thấy** — đúng như đã cảnh báo khi chốt phạm vi P4.
 | **Coverage** | Đo lại, ratchet `test:coverage` + `test:coverage:unit`; thêm test còn thiếu |
 | **Done khi** | `tsc/lint/build` xanh · `npm test` xanh · không còn fixture domain · DB rỗng render empty state |
 
+> **Đã làm & kiểm chứng**
+>
+> - **Xoá fixture:** `lib/fixtures/{destinations,posts,cuisines,faqs}.ts` đã xoá sau khi
+>   `grep "@/lib/fixtures/(destinations|posts|cuisines|faqs)"` = **0**. `lib/fixtures/` chỉ còn
+>   `site.ts` (brand), `home-media.ts` (hero/closing), `home.ts` (tours + journey),
+>   `tour-details.ts` (lịch trình + gallery + departures).
+> - **Thu gọn:** `home.ts` bỏ `destinations`/`cuisines`/`faqs` và ảnh điểm đến không dùng;
+>   `HomePageData` chỉ còn `tours` + `journey`. `tour-details.ts` bỏ `destinations`/`cuisines`,
+>   `TourDetailData` bỏ 2 field đó; `TourDestinations` nhận prop `destinations`, trang tour
+>   truyền dữ liệu từ `listDestinationsForTour`.
+> - **Sửa lỗi phát sinh:** `/diem-den/[slug]` thiếu `export const instant = false` nên dev log
+>   `instant-shell-url-data`; đã thêm, live check sạch cảnh báo này.
+> - **Docs:** `sources/README.md` (trạng thái public đọc DB, cây thư mục `server/content`,
+>   cache/`updateTag`, danh sách test); `AGENTS.md` mục "Content vs. data" (public content
+>   DB-driven, sửa DB tay không invalidate cache); PLAN errata cập nhật.
+> - **Kiểm tra tĩnh:** `grep "@/lib/prisma"` trong `app/`/`components/` = **0**; `grep` fixture
+>   domain = **0**; `tsc` ✅ · `lint` ✅ · `build` ✅.
+> - **Live verify (dev:local):** 10 route public đều 200 — `/`, `/diem-den`,
+>   `/diem-den/cho-noi-cai-rang`, `/am-thuc`, `/am-thuc/lau-mam-u-minh`, `/kinh-nghiem`,
+>   `/kinh-nghiem/mua-nao-di-u-minh-ha-dep-nhat`, `/lien-he`, `/tour`,
+>   `/tour/sai-gon-can-tho-u-minh-ha-dat-mui-4n3d`; tour detail render đúng điểm đến + món ăn
+>   từ DB; home có FAQ + ẩm thực từ DB.
+> - **Empty state:** các trang/`section` đã có từ D9.2–D9.5 (`/diem-den`, `/am-thuc`,
+>   `/kinh-nghiem`, home sections, `/lien-he` FAQ); DB rỗng không crash.
+> - **Coverage:** full **86.73 / 88.53 / 93.86**, unit **98.31 / 94.42 / 95.24**. Ratchet
+>   `test:coverage` lines **80 → 84**; giữ branches 88 / functions 92 (đã sát số đo). Unit giữ
+>   96 / 92 / 93.
+> - **Tests:** `npm test` **222/222** (không đổi số case; D9.6 chỉ dọn fixture/docs).
+> - **Còn lại có sẵn:** `/tour/[slug]` vẫn log cảnh báo `new Date()` từ `getBookableDepartures`
+>   khi dev prerender — lỗi có từ trước D9, ngoài phạm vi dọn fixture.
+
 #### Cache / render
 
 ```ts
@@ -1771,10 +1802,10 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | §B1 (ghi chú) | "URL ảnh trong seed là `upload.wikimedia.org` → đã có trong `next.config.ts#images.remotePatterns`" | **Sai**: `remotePatterns` đã bị xoá ở D0. Mọi ảnh phải là `/images/*.webp`; dữ liệu DB cũ đi qua `lib/images.ts#toLocalImage` |
 | §B1 (`coverImage`) | `coverImage: { src: tour.coverImageUrl, … }` | Phải bọc `toLocalImage(tour.coverImageUrl, tour.name)` — nếu không, một row còn URL ngoài sẽ làm sập trang |
 | §B4 | "Trang `/admin/messages` … để phase sau" | **Đã xong** ở D3 |
-| §T4 | "Tổng 111 test case" · coverage 74.31 / 90.24 / 94.56 | Hiện **171 test**, coverage đo lại ≈ 82.12 / 88.22 / 94.09 (gate 80 / 88 / 92). `test:coverage:unit` ratchet lên 96 / 92 / 93 |
+| §T4 | "Tổng 111 test case" · coverage 74.31 / 90.24 / 94.56 | Sau D9: **222 test**, coverage **86.73 / 88.53 / 93.86** (gate full **84 / 88 / 92**, unit **96 / 92 / 93**) |
 | §T0 | `helpers/factories.ts` là nguồn tạo dữ liệu test duy nhất | Vẫn đúng, nhưng `scripts/tests/admin-content.test.mts` tự tạo dữ liệu riêng (chuyến 2031, media, review, admin) và **khôi phục** settings/tour trong `after()` |
 | §9.6 | Track C: 5 file mới | Không đổi; Track D thêm 8 trang admin + 7 service trước D9, và D9 dự kiến thêm 4 domain nội dung (12 trang admin/public + 8 service) |
-| §10.0 (đo lúc viết plan) | `build 50 route` · `npm test 156/156` · coverage 81.8 / 88.0 / 93.8 (gate 72 / 88 / 92) | Sau D8: **51 route** (thêm `/api/reviews`), **171 test**, coverage **82.12 / 88.22 / 94.09** (gate 80 / 88 / 92) |
+| §10.0 (đo lúc viết plan) | `build 50 route` · `npm test 156/156` · coverage 81.8 / 88.0 / 93.8 (gate 72 / 88 / 92) | Sau D9: **222 test**, coverage **86.73 / 88.53 / 93.86** (gate full **84 / 88 / 92**); 4 domain nội dung public đã đọc DB |
 | §D9 (bảng cũ) | "tách 5 bước" · D9.1 fallback fixture · D9.5 xoá `lib/fixtures/*` trừ `site.ts` | Đổi thành **6 slice** D9.1–D9.6; fallback chỉ tạm đến D9.6 rồi dùng empty state; giữ `site.ts`, `home.ts` (tours/journey), `tour-details.ts` (lịch trình) |
 | Ngoài plan | — | `/diem-den/[slug]` chưa từng tồn tại dù mọi card link tới → D9.2 thêm mới, không phải sửa |
 | Ngoài plan | — | D9.2 loại `server/content/public-*.ts` khỏi coverage (wrapper `"use cache"`/`cacheLife` chỉ chạy trong Next runtime); query + admin service vẫn được test |
@@ -1784,6 +1815,8 @@ Các điểm dưới đây **không còn đúng** như văn bản gốc ở §2�
 | Ngoài plan | — | D9.4: `/am-thuc/[slug]` vẫn dùng `tourDetails` fixture cho `RelatedTourCard` và khớp bữa ăn; chỉ dữ liệu món ăn chuyển sang DB. Phần lịch trình tour giữ lại đến D9.6 |
 | Ngoài plan | — | D9.5: FAQ không có slug nên admin sửa/xoá theo `id`; `ContactFaq` nhận `PublicFaqRecord` thay vì `FaqRecord` từ fixture. Chủ đề FAQ được whitelist 6 giá trị (`general/booking/transport/food/safety/weather`) |
 | Ngoài plan | — | **20/11/2026:** production FAQ trước D9.5 vẫn là 8 row `placement = null`. Đã backup `faqs` (`%TEMP%\xmsn-faq-backup-*`), gán `contact` cho 5 câu liên hệ và thêm 4 FAQ `home` (sort 9–12); 3 câu chủ đề còn `null` |
+| Ngoài plan | — | D9.6: đã xoá `lib/fixtures/{destinations,posts,cuisines,faqs}.ts`; `home.ts` chỉ còn tours/journey, `tour-details.ts` bỏ `destinations`/`cuisines`. `TourDestinations` nhận prop `destinations`; `HomePageData`/`TourDetailData` thu gọn |
+| Ngoài plan | — | D9.6: `/diem-den/[slug]` thiếu `export const instant = false` (bỏ sót ở D9.2) → đã thêm. Coverage gate full lines **80 → 84**; branches/functions giữ 88/92 |
 | Ngoài plan | — | `Post` thiếu `topic`/`relatedTourCodes`/`checklist`/`isFeatured`; `Faq` thiếu `placement` → D9.1 thêm migration |
 | Ngoài plan | — | D8 render form đánh giá trong `components/lookup/order-lookup.tsx`, không phải `app/(site)/tra-cuu-don/page.tsx` (trang server không biết trạng thái đơn) |
 | Ngoài plan | — | **19/11/2026:** admin login production lỗi `P2022 admin_users.token_version does not exist` vì migration D7 chưa lên production. Đã backup `admin_users`/`orders` rồi `prisma migrate deploy`; `migrate status` up to date. Local dev chuyển sang `npm run dev:local`; `lib/prisma.ts` cảnh báo nếu dev trỏ production |

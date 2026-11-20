@@ -19,6 +19,9 @@ type DestinationDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+// Trang chi tiết đọc slug và được prerender cho toàn bộ danh sách hiện có.
+export const instant = false;
+
 export async function generateStaticParams() {
   const destinations = await listPublicDestinations();
   return destinations.map((destination) => ({ slug: destination.slug }));

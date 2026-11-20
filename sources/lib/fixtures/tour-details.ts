@@ -1,4 +1,3 @@
-import type { CuisineData, DestinationData } from "@/lib/contracts/home";
 import type { TourDetailData } from "@/lib/contracts/tour";
 
 const IMG = {
@@ -27,184 +26,7 @@ const IMG = {
   xuongMay: "/images/23-xuong-may-tren-kenh-phu-sa.webp",
 };
 
-const DESTINATIONS = {
-  vinhTrang: {
-    slug: "chua-vinh-trang",
-    name: "Chùa Vĩnh Tràng",
-    province: "Đồng Tháp",
-    shortDescription:
-      "Ngôi chùa cổ của Mỹ Tho với kiến trúc pha trộn Việt – Hoa – Khmer và nhiều chi tiết trang trí kiểu Pháp.",
-    image: { src: IMG.vinhTrang, alt: "Chùa Vĩnh Tràng ở Mỹ Tho" },
-  },
-  thoiSon: {
-    slug: "cu-lao-thoi-son",
-    name: "Cù lao Thới Sơn",
-    province: "Đồng Tháp",
-    shortDescription:
-      "Cồn nổi giữa sông Tiền, nơi du khách đi xuồng, nghe đờn ca tài tử và thưởng thức trái cây miệt vườn.",
-    image: { src: IMG.thoiSon, alt: "Xuồng chở khách qua kênh rừng nước ở cù lao Thới Sơn" },
-  },
-  caiRang: {
-    slug: "cho-noi-cai-rang",
-    name: "Chợ nổi Cái Răng",
-    province: "Cần Thơ",
-    shortDescription:
-      "Chợ nổi lớn nhất miền Tây, họp từ sáng sớm trên sông Cần Thơ với ghe trái cây, rau củ và đồ ăn sáng.",
-    image: { src: IMG.caiRang, alt: "Ghe thuyền bán trái cây trên chợ nổi Cái Răng" },
-  },
-  binhThuy: {
-    slug: "nha-co-binh-thuy",
-    name: "Nhà cổ Bình Thủy",
-    province: "Cần Thơ",
-    shortDescription:
-      "Dinh thự họ Dương xây cuối thế kỷ 19, tiêu biểu cho kiến trúc Đông Dương và nội thất gỗ truyền thống.",
-    image: { src: IMG.binhThuy, alt: "Nhà cổ Bình Thủy ở Cần Thơ" },
-  },
-  chuaDoi: {
-    slug: "chua-doi",
-    name: "Chùa Dơi (Mahatup)",
-    province: "Cần Thơ",
-    shortDescription:
-      "Ngôi chùa Khmer cổ với kiến trúc Việt – Khmer và đàn dơi quạ trú ngụ trong khuôn viên rợp bóng cây.",
-    image: { src: IMG.chuaDoi, alt: "Chùa Dơi (Mahatup) ở Sóc Trăng" },
-  },
-  congTu: {
-    slug: "nha-cong-tu-bac-lieu",
-    name: "Nhà công tử Bạc Liêu",
-    province: "Cà Mau",
-    shortDescription:
-      "Dinh thự của công tử Trần Trinh Huy, xây từ năm 1917 đến 1919, mang kiến trúc Pháp cổ.",
-    image: { src: IMG.congTu, alt: "Dinh thự nhà công tử Bạc Liêu" },
-  },
-  dienGio: {
-    slug: "canh-dong-dien-gio-bac-lieu",
-    name: "Cánh đồng quạt gió Bạc Liêu",
-    province: "Cà Mau",
-    shortDescription:
-      "Những trụ tuabin điện gió ven biển nổi bật giữa bãi bồi, đẹp nhất vào cuối ngày khi nắng đổ xuống.",
-    image: { src: IMG.dienGio, alt: "Các trụ tuabin điện gió trên bãi bồi Bạc Liêu" },
-  },
-  uMinh: {
-    slug: "vuon-quoc-gia-u-minh-ha",
-    name: "Vườn quốc gia U Minh Hạ",
-    province: "Cà Mau",
-    shortDescription:
-      "Rừng tràm trên đất than bùn với hệ sinh thái đất ngập nước, nghề gác kèo ong và những tuyến kênh nhỏ.",
-    image: { src: IMG.uMinh, alt: "Kênh rừng tràm nhìn từ mũi ghe" },
-  },
-  muiCaMau: {
-    slug: "mui-ca-mau",
-    name: "Mũi Cà Mau",
-    province: "Cà Mau",
-    shortDescription:
-      "Cực Nam trên đất liền Việt Nam với mốc tọa độ quốc gia, cột cờ Hà Nội và rừng đước Năm Căn.",
-    image: { src: IMG.muiCaMau, alt: "Cột mốc Mũi Cà Mau với cờ đỏ sao vàng" },
-  },
-  cotCo: {
-    slug: "cot-co-ha-noi-mui-ca-mau",
-    name: "Cột cờ Hà Nội tại Mũi Cà Mau",
-    province: "Cà Mau",
-    shortDescription:
-      "Công trình mô phỏng Cột cờ Hà Nội, cao hơn 41 m, nằm trong khu du lịch quốc gia Mũi Cà Mau.",
-    image: { src: IMG.cotCo, alt: "Tượng cua biển và cột cờ trong khu du lịch Mũi Cà Mau" },
-  },
-} satisfies Record<string, DestinationData>;
-
-const CUISINES = {
-  lauMam: {
-    slug: "lau-mam-u-minh",
-    name: "Lẩu mắm U Minh",
-    description:
-      "Mắm cá linh, cá sặc rằn nấu cùng nước dừa, ăn kèm cá đồng, tôm, rau đồng và bún.",
-    whereToEat: "Homestay và quán ăn trong Vườn quốc gia U Minh Hạ",
-    province: "Cà Mau",
-  },
-  cua: {
-    slug: "cua-ca-mau",
-    name: "Cua Cà Mau",
-    description:
-      "Cua biển Năm Căn chắc thịt, ngọt tự nhiên, thường hấp bia hoặc nấu lẩu.",
-    whereToEat: "Năm Căn, Đất Mũi, chợ cua Cà Mau",
-    province: "Cà Mau",
-  },
-  baKhia: {
-    slug: "ba-khia-muoi",
-    name: "Ba khía muối",
-    description:
-      "Ba khía muối mặn trộn tỏi, ớt, chanh, đường và rau thơm, món dân dã của vùng Rạch Gốc – Ngọc Hiển.",
-    whereToEat: "Rạch Gốc, Ngọc Hiển, chợ đêm Cà Mau",
-    province: "Cà Mau",
-  },
-  vop: {
-    slug: "vop-nuong",
-    name: "Vọp nướng",
-    description:
-      "Vọp nước lợ nướng trên than hồng, chấm muối tiêu chanh, phổ biến ở vùng biển Đất Mũi và Bạc Liêu.",
-    whereToEat: "Đất Mũi, bãi biển Bạc Liêu",
-    province: "Cà Mau",
-  },
-  banhXeo: {
-    slug: "banh-xeo-mien-tay",
-    name: "Bánh xèo miền Tây",
-    description:
-      "Vỏ giòn từ bột gạo nghệ, nhân tôm thịt và giá đỗ, cuốn cùng rau rừng và nước mắm chua ngọt.",
-    whereToEat: "Cần Thơ, Bạc Liêu, Cà Mau",
-    province: "Cần Thơ",
-  },
-  bunNuocLeo: {
-    slug: "bun-nuoc-leo-soc-trang",
-    name: "Bún nước lèo Sóc Trăng",
-    description:
-      "Nước dùng nấu từ mắm bò hóc, cá lóc và tôm khô, ăn cùng bún, rau sống và chả cá.",
-    whereToEat: "TP Sóc Trăng",
-    province: "Cần Thơ",
-  },
-  banhPia: {
-    slug: "banh-pia-soc-trang",
-    name: "Bánh pía Sóc Trăng",
-    description:
-      "Bánh nướng nhiều lớp với nhân đậu xanh, mỡ, trứng muối và sầu riêng, thường mua làm quà.",
-    whereToEat: "Các lò bánh pía ở TP Sóc Trăng",
-    province: "Cần Thơ",
-  },
-} satisfies Record<string, CuisineData>;
-
-function pickDestinations(
-  keys: Array<keyof typeof DESTINATIONS>,
-): DestinationData[] {
-  return keys.map((key) => DESTINATIONS[key]);
-}
-
-function pickCuisines(keys: Array<keyof typeof CUISINES>): CuisineData[] {
-  return keys.map((key) => CUISINES[key]);
-}
-
 const arrivalPoint = "Trung tâm Quận 1 hoặc Bến xe Miền Tây";
-
-const FOUR_DAY_DESTINATIONS = pickDestinations([
-  "vinhTrang",
-  "thoiSon",
-  "caiRang",
-  "binhThuy",
-  "chuaDoi",
-  "congTu",
-  "dienGio",
-  "uMinh",
-  "muiCaMau",
-  "cotCo",
-]);
-
-const THREE_DAY_DESTINATIONS = pickDestinations([
-  "vinhTrang",
-  "thoiSon",
-  "caiRang",
-  "binhThuy",
-  "chuaDoi",
-  "congTu",
-  "dienGio",
-  "muiCaMau",
-  "cotCo",
-]);
 
 export const tourDetails: TourDetailData[] = [
   {
@@ -376,16 +198,6 @@ export const tourDetails: TourDetailData[] = [
         ],
       },
     ],
-    destinations: FOUR_DAY_DESTINATIONS,
-    cuisines: pickCuisines([
-      "lauMam",
-      "cua",
-      "baKhia",
-      "vop",
-      "banhXeo",
-      "bunNuocLeo",
-      "banhPia",
-    ]),
     departures: [
       {
         id: 4101,
@@ -544,14 +356,6 @@ export const tourDetails: TourDetailData[] = [
         ],
       },
     ],
-    destinations: THREE_DAY_DESTINATIONS,
-    cuisines: pickCuisines([
-      "cua",
-      "vop",
-      "banhXeo",
-      "bunNuocLeo",
-      "banhPia",
-    ]),
     departures: [
       {
         id: 3201,
@@ -683,8 +487,6 @@ export const tourDetails: TourDetailData[] = [
         ],
       },
     ],
-    destinations: pickDestinations(["uMinh"]),
-    cuisines: pickCuisines(["lauMam", "cua", "baKhia"]),
     departures: [
       {
         id: 2101,

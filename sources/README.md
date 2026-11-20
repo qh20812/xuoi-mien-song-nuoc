@@ -4,10 +4,12 @@ Website đặt tour **Sài Gòn – U Minh Hạ – Đất Mũi Cà Mau**: khác
 (không thanh toán online), tra cứu/huỷ đơn, xem tour – bài viết – FAQ – liên hệ; kèm
 khu quản trị tối giản để xử lý đơn.
 
-> Trạng thái: storefront, form đặt giữ chỗ, tra cứu/huỷ đơn, form liên hệ và mini admin
-> đều đã nối backend thật (MySQL). Không còn adapter mock nào ở phía khách.
-> Nội dung marketing (tour, bài viết, điểm đến, ẩm thực, FAQ) vẫn đọc từ
-> `lib/fixtures/` — cố ý, để trang public giữ nguyên khả năng prerender.
+> Trạng thái: storefront, form đặt giữ chỗ, tra cứu/huỷ đơn, form liên hệ, mini admin và
+> CRUD nội dung (điểm đến, bài viết, món ăn, FAQ) đều đã nối backend thật (MySQL). Không còn
+> adapter mock nào ở phía khách.
+> Nội dung public đọc từ MySQL qua `server/content/*` và cache theo tag; chỉ brand
+> (`site.ts`), tour trang chủ/hành trình (`home.ts`) và lịch trình tour (`tour-details.ts`)
+> còn là fixture.
 
 ## Công nghệ
 
@@ -39,6 +41,9 @@ khu quản trị tối giản để xử lý đơn.
 - Thao tác: `pending` (đã liên hệ) → `confirm` (xác nhận, bỏ hạn giữ chỗ) →
   `complete`; huỷ đơn (admin được phép huỷ cả khi quá hạn).
 - Mọi thao tác ghi `order_status_history` + `admin_audit_logs`.
+- CRUD nội dung: điểm đến (`/admin/destinations`), bài viết (`/admin/posts`), món ăn
+  (`/admin/cuisines`), FAQ (`/admin/faqs`); lưu xong gọi `updateTag` để public thấy ngay.
+  Draft/tắt `isActive` biến khỏi public.
 - Giao diện theo `DESIGN-ADMIN.md`: sidebar 248px + drawer mobile, chip trạng thái theo token
   dự án; danh sách đơn có bảng ở `≥768` và card ở mobile; chi tiết đơn chỉ hiện hành động hợp
   lệ với trạng thái, huỷ bắt buộc nhập lý do.
@@ -53,19 +58,20 @@ app/
   api/reviews/           nhận đánh giá của khách (public)
   api/admin/…            login/logout/me, danh sách & cập nhật đơn
   admin/login/           trang đăng nhập
-  admin/(dashboard)/     dashboard, danh sách đơn, chi tiết đơn + server actions
+  admin/(dashboard)/     dashboard, đơn hàng, tour/chuyến, nội dung, media, đánh giá, cấu hình, tài khoản
 components/
-  admin/                 shell, sidebar, drawer, page header, chip trạng thái, order actions
+  admin/                 shell, sidebar, drawer, page header, chip trạng thái, form CRUD nội dung
   reviews/               form khách gửi đánh giá (chỉ hiện với đơn completed)
 lib/
   api/client.ts          fetch wrapper dùng chung (inject được baseUrl/fetchImpl)
   auth/                  JWT cookie, session, sanitize `next`
   booking/               submit / success / preview / validation (phía client)
   booking/status-labels.ts  nhãn 6 trạng thái, dùng chung admin + API
+  content/               mapper thuần, cache tags, lựa chọn category/placement
   orders/client.ts       adapter tra cứu & huỷ đơn gọi API thật
   contact/client.ts      adapter gửi lời nhắn liên hệ
   reviews/client.ts      adapter gửi đánh giá
-  fixtures/              nội dung marketing tĩnh cho trang public
+  fixtures/              brand, tour trang chủ/hành trình, lịch trình tour (nội dung domain đã sang DB)
   validation/            schema zod đầu vào API (order, contact, review)
   settings.ts            type + mặc định + hàm chuẩn hoá (thuần, không Prisma)
   time.ts                ngày/giờ theo múi giờ VN
@@ -75,6 +81,7 @@ server/
   booking/               create / lookup / cancel / admin update + DTO
   catalog/               tour & chuyến khởi hành công khai (đọc từ MySQL)
   contact/               ghi contact_messages
+  content/               query + admin CRUD + cache cho điểm đến/bài viết/món ăn/FAQ
   reviews/               tạo đánh giá khách + service kiểm duyệt cho admin
   settings/              đọc bảng settings + ghép cấu hình site
   auth/authenticate.ts   xác thực admin dùng chung
@@ -366,7 +373,12 @@ Lưu ý production:
   thì gọi `await connection()` từ `next/server`.
 - Trang admin đọc `cookies()` / `searchParams`; đặt `export const instant = false`
   ở `app/admin/layout.tsx` để cho phép blocking khi điều hướng.
-- Trang public đọc dữ liệu tĩnh nên vẫn prerender bình thường.
+- Trang public đọc nội dung qua loader `"use cache"` + `cacheLife("max")` + `cacheTag`
+  (`content:destinations|posts|cuisines|faqs`). Server action admin gọi `updateTag` sau khi
+  lưu để public thấy ngay.
+- Sửa DB tay **không** tự invalidate cache: dùng admin UI, restart dev server, hoặc gọi
+  revalidate. Nếu không, trang public có thể trả bản cũ tới khi cache hết hạn.
+- Đừng khai báo `runtime`/`dynamic` trong route handler; build sẽ báo lỗi.
 
 ## Kiểm thử
 
@@ -379,7 +391,11 @@ npm test
   tra cứu, huỷ, quá hạn.
 - `scripts/tests/admin.test.mts` — JWT, đăng nhập (route handler thật), proxy guard,
   chuyển trạng thái, audit, rate limit.
+- `scripts/tests/content-{destinations,posts,cuisines,faqs}.test.mts` — loader public,
+  admin CRUD, audit và validation cho 4 domain nội dung.
 - `scripts/tests/jobs.test.mjs` — `expire-holds`, `reconcile-seats`.
+- `npm run test:unit` chạy suite thuần không cần DB; `npm run test:coverage` chạy toàn bộ
+  và áp ngưỡng coverage.
 
 Test dùng `TEST_DATABASE_URL`; mỗi file chạy trong process riêng của Node test
 runner.

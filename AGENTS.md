@@ -23,7 +23,8 @@ npm test
 
 ## Content vs. data (read this first)
 
-- **Marketing content is fixture-driven.** `app/(site)/**` reads tours, posts, destinations, cuisines, FAQs and brand info from `lib/fixtures/*`. Editing MySQL changes nothing there — edit the fixture. This is deliberate: it keeps the public pages prerenderable.
+- **Public content is DB-driven.** Destinations, cuisines, posts and FAQs for `app/(site)/**` come from MySQL through `server/content/*` and cached loaders (`"use cache"`, `cacheTag`, `updateTag`). Admin CRUD lives at `/admin/{destinations,posts,cuisines,faqs}`. Only brand info (`lib/fixtures/site.ts`), home tours/journey (`home.ts`) and tour itineraries (`tour-details.ts`) remain fixtures.
+- **Manual DB edits do not invalidate the content cache.** Use the admin UI (server actions call `updateTag`) or restart the dev server / call revalidate after editing MySQL directly.
 - **Booking data is DB-driven.** `/dat-tour` and `/tour/[slug]` load tours and departures from MySQL via `server/catalog/*`, so the `departureId` sent to `POST /api/orders` always exists. `/tour/[slug]` is therefore `ƒ` (dynamic), not prerendered.
 - **Every customer flow is wired end to end.** `lib/booking/submit.ts`, `lib/orders/client.ts` and `lib/contact/client.ts` call `/api/orders`, `/api/orders/lookup|cancel` and `/api/contact` through `lib/api/client.ts`. No mock adapters remain — a booking made in the browser is a real row in `orders`.
 - **Prisma lives in `server/**`** (plus the legacy `lib/auth/session.ts`). `app/` and `components/` must never import `@/lib/prisma`; go through a `server/<domain>/` service.
@@ -32,7 +33,7 @@ npm test
 ## Where logic belongs
 
 - Capacity, pricing, state transitions and audit go in `server/booking/`. Route handlers in `app/api/` and server actions in `app/admin/(dashboard)/**/actions.ts` are thin wrappers — keep them thin.
-- Other domains: `server/catalog/` (public tours + departures), `server/contact/` (contact messages), `server/settings/` (settings read + site-settings merge). `server/errors.ts#AppError` is the shared error type; `BookingError` only adds a narrower `code` union.
+- Other domains: `server/catalog/` (public tours + departures), `server/contact/` (contact messages), `server/content/` (destinations, posts, cuisines, FAQs + cache tags), `server/settings/` (settings read + site-settings merge). `server/errors.ts#AppError` is the shared error type; `BookingError` only adds a narrower `code` union.
 - Booking settings (`holdHours`, `cancelCutoffDays`, `maxGuestsPerOrder`, `minDaysAhead`) come from the `settings` table via `server/settings/get-site-settings.ts`. Never hardcode these numbers in a component — the server would disagree.
 - Admin UI is server components + server actions calling `server/booking/admin-queries.ts` / `admin-update-order.ts` directly. The `/api/admin/orders*` routes are a parallel, UI-less path. `app/admin/login/actions.ts` and `app/api/admin/login/route.ts` are duplicate login implementations (page vs. tests) — a fix in one usually needs the other.
 

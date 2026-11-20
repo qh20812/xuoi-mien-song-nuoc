@@ -2,14 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, MapPin } from "lucide-react";
 import { SectionHeading } from "@/components/ui/section-heading";
-import type { TourDetailData } from "@/lib/contracts/tour";
+import type { DestinationData } from "@/lib/contracts/home";
 
 type TourDestinationsProps = {
-  tour: TourDetailData;
+  destinations: DestinationData[];
 };
 
-export function TourDestinations({ tour }: TourDestinationsProps) {
-  if (tour.destinations.length === 0) return null;
+export function TourDestinations({ destinations }: TourDestinationsProps) {
+  if (destinations.length === 0) return null;
 
   return (
     <section aria-labelledby="tour-destinations" className="border-t border-line pt-8">
@@ -19,11 +19,11 @@ export function TourDestinations({ tour }: TourDestinationsProps) {
           title="Điểm đến trên hành trình"
           titleClassName="text-[clamp(1.75rem,3.4vw,2.5rem)]"
         />
-        <p className="text-sm text-sage">{tour.destinations.length} điểm dừng</p>
+        <p className="text-sm text-sage">{destinations.length} điểm dừng</p>
       </div>
 
       <div className="mt-7 grid grid-cols-1 gap-x-8 md:grid-cols-2">
-        {tour.destinations.map((destination) => (
+        {destinations.map((destination) => (
           <Link
             key={destination.slug}
             href={`/diem-den/${destination.slug}`}

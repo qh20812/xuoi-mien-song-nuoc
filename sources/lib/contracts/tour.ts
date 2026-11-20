@@ -1,8 +1,4 @@
-import type {
-  CuisineData,
-  DestinationData,
-  ImageAsset,
-} from "@/lib/contracts/home";
+import type { ImageAsset } from "@/lib/contracts/home";
 
 export type TourListingData = {
   code: string;
@@ -72,7 +68,5 @@ export type TourDetailData = {
   coverImage: ImageAsset;
   gallery: ImageAsset[];
   itineraryDays: TourItineraryDay[];
-  destinations: DestinationData[];
-  cuisines: CuisineData[];
   departures: TourDepartureOption[];
 };

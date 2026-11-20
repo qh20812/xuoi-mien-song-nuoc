@@ -1,19 +1,6 @@
 import type { HomePageData } from "@/lib/contracts/home";
 
 const IMG = {
-  // Điểm đến — ảnh tải từ Wikimedia Commons (nguồn & giấy phép: public/images/CREDITS.md)
-  vinhTrang: "/images/chua-vinh-trang.webp",
-  thoiSon: "/images/cu-lao-thoi-son.webp",
-  caiRang: "/images/cho-noi-cai-rang.webp",
-  binhThuy: "/images/nha-co-binh-thuy.webp",
-  chuaDoi: "/images/chua-doi-soc-trang.webp",
-  congTu: "/images/nha-cong-tu-bac-lieu.webp",
-  dienGio: "/images/canh-dong-dien-gio-bac-lieu.webp",
-  // Điểm đến — ảnh chụp trong chuyến Cà Mau – Đất Mũi
-  uMinh: "/images/65-mui-ghe-dtc-kenh-rung-tram.webp",
-  muiCaMau: "/images/50-cot-moc-mui-ca-mau-co-do.webp",
-  cotCo: "/images/69-tuong-cua-bien-ca-mau.webp",
-  tacSay: "/images/nha-tho-tac-say.webp",
   // Ảnh bìa tour
   tour4n3d: "/images/23-xuong-may-tren-kenh-phu-sa.webp",
   tour3n2d: "/images/21-ghe-cho-hang-tren-kenh-2.webp",
@@ -129,96 +116,6 @@ export const homePageData: HomePageData = {
       durationText: "khoảng 2 giờ 30 phút",
       distanceKm: 136,
       foodNote: "Cua Cà Mau, vọp nướng, ba khía muối",
-    },
-  ],
-  destinations: [
-    {
-      slug: "vuon-quoc-gia-u-minh-ha",
-      name: "Vườn quốc gia U Minh Hạ",
-      province: "Cà Mau",
-      shortDescription:
-        "Dòng kênh nhuộm màu tràm và hệ sinh thái đất ngập nước quý giá, nơi những tổ ong gác kèo treo dưới tán rừng.",
-      image: { src: IMG.uMinh, alt: "Kênh rừng tràm nhìn từ mũi ghe" },
-    },
-    {
-      slug: "mui-ca-mau",
-      name: "Mũi Cà Mau",
-      province: "Ngọc Hiển · Cà Mau",
-      shortDescription:
-        "Nơi cuối trời phương Nam với mốc tọa độ quốc gia, cột cờ Hà Nội và rừng đước giữ chặt bãi triều.",
-      image: { src: IMG.muiCaMau, alt: "Cột mốc Mũi Cà Mau với cờ đỏ sao vàng" },
-    },
-    {
-      slug: "cho-noi-cai-rang",
-      name: "Chợ nổi Cái Răng",
-      province: "Cần Thơ",
-      shortDescription:
-        "Nếp sinh hoạt thương hồ trăm năm trên ngã ba sông, họp từ sáng sớm với ghe trái cây và rau củ.",
-      image: { src: IMG.caiRang, alt: "Ghe bán trái cây và đồ uống trên chợ nổi Cái Răng" },
-    },
-    {
-      slug: "canh-dong-dien-gio-bac-lieu",
-      name: "Cánh đồng quạt gió Bạc Liêu",
-      province: "Bạc Liêu",
-      shortDescription:
-        "Những trụ tuabin ven biển đứng giữa bãi bồi, nổi bật nhất vào cuối ngày khi nắng đổ xuống cánh đồng.",
-      image: { src: IMG.dienGio, alt: "Các trụ tuabin điện gió trên bãi bồi Bạc Liêu" },
-    },
-  ],
-  cuisines: [
-    {
-      slug: "lau-mam-u-minh",
-      name: "Lẩu mắm U Minh",
-      description:
-        "Mắm cá linh, cá sặc rằn nấu cùng nước dừa, ăn kèm cá đồng, tôm, rau đồng và bún.",
-      whereToEat: "Homestay và quán ăn trong Vườn quốc gia U Minh Hạ",
-      province: "Cà Mau",
-    },
-    {
-      slug: "cua-ca-mau",
-      name: "Cua Cà Mau",
-      description:
-        "Cua biển Năm Căn chắc thịt, ngọt tự nhiên, thường hấp bia hoặc nấu lẩu.",
-      whereToEat: "Năm Căn, Đất Mũi, chợ cua Cà Mau",
-      province: "Cà Mau",
-    },
-    {
-      slug: "banh-xeo-mien-tay",
-      name: "Bánh xèo miền Tây",
-      description:
-        "Vỏ giòn từ bột gạo nghệ, nhân tôm thịt và giá đỗ, cuốn cùng rau rừng và nước mắm chua ngọt.",
-      whereToEat: "Cần Thơ, Bạc Liêu, Cà Mau",
-      province: "Cần Thơ",
-    },
-    {
-      slug: "bun-nuoc-leo-soc-trang",
-      name: "Bún nước lèo Sóc Trăng",
-      description:
-        "Nước dùng nấu từ mắm bò hóc, cá lóc và tôm khô, ăn cùng bún, rau sống và chả cá.",
-      whereToEat: "TP Sóc Trăng",
-      province: "Cần Thơ",
-    },
-  ],
-  faqs: [
-    {
-      question: "Quy trình giữ chỗ và đặt cọc diễn ra như thế nào?",
-      answer:
-        "Bạn điền thông tin liên hệ và chọn chuyến mong muốn; website chưa thu tiền online. Trong thời gian giữ chỗ 24 giờ, nhân viên sẽ gọi hoặc nhắn Zalo để xác nhận và hướng dẫn đặt cọc. Đơn được xác nhận sau khi hoàn tất bước này.",
-    },
-    {
-      question: "Trẻ em mấy tuổi được miễn phí?",
-      answer:
-        "Trẻ dưới 5 tuổi được miễn phí và vẫn được xếp một chỗ ngồi riêng. Khi đặt, bạn ghi rõ nhu cầu ăn uống và ngủ nghỉ của bé để được tư vấn.",
-    },
-    {
-      question: "Có thể hủy hoặc dời lịch không?",
-      answer:
-        "Bạn có thể tự hủy trước 3 ngày khởi hành hoặc liên hệ hotline nếu sát ngày. Việc dời lịch được hỗ trợ miễn phí; nhân viên sẽ kiểm tra chỗ trống và hướng dẫn thủ tục.",
-    },
-    {
-      question: "Đón khách ở đâu?",
-      answer:
-        "Khách được đón tại trung tâm Quận 1 hoặc Bến xe Miền Tây. Điểm đón cụ thể sẽ được xác nhận qua điện thoại/Zalo trước ngày khởi hành.",
     },
   ],
 };

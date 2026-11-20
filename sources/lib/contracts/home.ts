@@ -54,7 +54,4 @@ export type FaqData = {
 export type HomePageData = {
   tours: TourCardData[];
   journey: JourneyLegData[];
-  destinations: DestinationData[];
-  cuisines: CuisineData[];
-  faqs: FaqData[];
 };
